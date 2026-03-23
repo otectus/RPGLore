@@ -80,12 +80,12 @@ public class LoreBookScreen extends BookViewScreen {
                     ChatFormatting.YELLOW);
             this.authorColorRgb = parseHexColor(
                     tag.contains("lore_author_color") ? tag.getString("lore_author_color") : null,
-                    ChatFormatting.BLACK);
+                    ChatFormatting.DARK_GRAY);
         } else {
             this.bookTitle = "";
             this.bookAuthor = "";
             this.titleColorRgb = 0xFFFF55;
-            this.authorColorRgb = 0x000000;
+            this.authorColorRgb = 0x555555;
         }
     }
 
@@ -95,14 +95,18 @@ public class LoreBookScreen extends BookViewScreen {
 
     @Override
     protected void pageForward() {
-        super.pageForward();
-        trackedPage++;
+        if (trackedPage < wrappedAccess.getPageCount() - 1) {
+            super.pageForward();
+            trackedPage++;
+        }
     }
 
     @Override
     protected void pageBack() {
-        super.pageBack();
-        if (trackedPage > 0) trackedPage--;
+        if (trackedPage > 0) {
+            super.pageBack();
+            trackedPage--;
+        }
     }
 
     @Override

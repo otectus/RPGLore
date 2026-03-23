@@ -137,9 +137,7 @@ All commands require permission level 2 (operator).
 
 | Setting | Default | Description |
 |---------|---------|-------------|
-| `showPickupToast` | `true` | Show toast notification on book pickup |
 | `showLoreIdInTooltip` | `false` | Show internal lore_id in tooltip (for pack authors) |
-| `glintColor` | `"default"` | Enchantment glint color (`"default"` or hex like `"FF8800"`) |
 
 ## Building from Source
 

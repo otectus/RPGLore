@@ -87,6 +87,9 @@ public final class RpgLoreCommands {
                 }
             }
 
+            // Record for per-player copy tracking
+            BooksConfigLoader.recordPlayerReceived(player.getUUID(), def.id());
+
             player.level().playSound(null, player.getX(), player.getY(), player.getZ(),
                     SoundEvents.ITEM_PICKUP, SoundSource.PLAYERS, 0.2f, 1.0f);
             count++;

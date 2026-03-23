@@ -22,9 +22,10 @@ import net.minecraft.world.level.storage.loot.predicates.LootItemCondition;
 import net.minecraftforge.common.loot.IGlobalLootModifier;
 import net.minecraftforge.common.loot.LootModifier;
 
+import net.minecraft.util.RandomSource;
+
 import java.util.ArrayList;
 import java.util.List;
-import java.util.Random;
 import java.util.function.Supplier;
 
 public class LoreBookLootModifier extends LootModifier {
@@ -84,7 +85,7 @@ public class LoreBookLootModifier extends LootModifier {
         }
 
         // Roll global drop chance
-        Random random = new Random();
+        RandomSource random = context.getRandom();
         if (random.nextDouble() >= chance) return generatedLoot;
 
         // Select books (by weight or uniform), capped at maxBooksPerKill
@@ -117,7 +118,7 @@ public class LoreBookLootModifier extends LootModifier {
     }
 
     private static List<LoreBookDefinition> selectBooks(
-            List<LoreBookDefinition> candidates, Random random, int max, boolean useWeights) {
+            List<LoreBookDefinition> candidates, RandomSource random, int max, boolean useWeights) {
 
         if (candidates.size() <= max && !useWeights) {
             return candidates;

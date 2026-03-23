@@ -8,6 +8,8 @@ import com.rpglore.lore.LoreBookDefinition;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraftforge.fml.loading.FMLPaths;
 
+import com.rpglore.data.LoreTrackingData;
+
 import javax.annotation.Nullable;
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
@@ -20,8 +22,9 @@ public final class BooksConfigLoader {
 
     private static volatile Map<String, LoreBookDefinition> BOOKS = Map.of();
 
-    // Track per-player copies for max_copies_per_player (in-memory, resets on server restart)
-    private static final Map<UUID, Set<String>> PLAYER_DISCOVERED = new HashMap<>();
+    // Persistent per-player copy tracking, backed by world SavedData
+    @Nullable
+    private static volatile LoreTrackingData trackingData;
 
     public static Path getBooksDir() {
         return FMLPaths.CONFIGDIR.get().resolve("rpg_lore/books");
@@ -172,7 +175,13 @@ public final class BooksConfigLoader {
         }
 
         BOOKS = Collections.unmodifiableMap(newBooks);
-        PLAYER_DISCOVERED.clear();
+
+        // Prune tracking entries for books that no longer exist
+        LoreTrackingData data = trackingData;
+        if (data != null) {
+            data.pruneStaleEntries(newBooks.keySet());
+        }
+
         RpgLoreMod.LOGGER.info("Loaded {} lore book definition(s)", BOOKS.size());
     }
 
@@ -215,6 +224,10 @@ public final class BooksConfigLoader {
         String author = getStringOrDefault(root, "author", "Unknown");
         int generation = root.has("generation") ? root.get("generation").getAsInt() : 0;
         double weight = root.has("weight") ? root.get("weight").getAsDouble() : 1.0;
+        if (weight <= 0) {
+            RpgLoreMod.LOGGER.warn("Lore book '{}' has invalid weight {}, clamping to 0.01", filename, weight);
+            weight = 0.01;
+        }
 
         // pages (required)
         if (!root.has("pages") || !root.get("pages").isJsonArray()) {
@@ -322,18 +335,23 @@ public final class BooksConfigLoader {
         return Optional.ofNullable(BOOKS.get(id));
     }
 
-    // --- Per-player copy tracking ---
+    // --- Per-player copy tracking (delegated to LoreTrackingData) ---
+
+    public static void setTrackingData(@Nullable LoreTrackingData data) {
+        trackingData = data;
+    }
 
     public static boolean canPlayerReceive(UUID playerUuid, String bookId, int maxCopies) {
-        if (maxCopies < 0) return true;
-        Set<String> discovered = PLAYER_DISCOVERED.get(playerUuid);
-        if (discovered == null) return true;
-        // Count how many times this book appears (using a simple set, so max is effectively 1)
-        return !discovered.contains(bookId) || maxCopies > 1;
+        LoreTrackingData data = trackingData;
+        if (data == null) return true;
+        return data.canPlayerReceive(playerUuid, bookId, maxCopies);
     }
 
     public static void recordPlayerReceived(UUID playerUuid, String bookId) {
-        PLAYER_DISCOVERED.computeIfAbsent(playerUuid, k -> new HashSet<>()).add(bookId);
+        LoreTrackingData data = trackingData;
+        if (data != null) {
+            data.recordPlayerReceived(playerUuid, bookId);
+        }
     }
 
     // --- Parsing helpers ---

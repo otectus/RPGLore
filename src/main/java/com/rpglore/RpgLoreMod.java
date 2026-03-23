@@ -4,12 +4,15 @@ import com.rpglore.command.RpgLoreCommands;
 import com.rpglore.config.BooksConfigLoader;
 import com.rpglore.config.ClientConfig;
 import com.rpglore.config.ServerConfig;
+import com.rpglore.data.LoreTrackingData;
 import com.rpglore.loot.ModLootModifiers;
 import com.rpglore.registry.ModItems;
 import com.mojang.logging.LogUtils;
+import net.minecraft.server.level.ServerLevel;
 import net.minecraftforge.common.MinecraftForge;
 import net.minecraftforge.event.RegisterCommandsEvent;
 import net.minecraftforge.event.server.ServerStartingEvent;
+import net.minecraftforge.event.server.ServerStoppedEvent;
 import net.minecraftforge.eventbus.api.IEventBus;
 import net.minecraftforge.fml.ModLoadingContext;
 import net.minecraftforge.fml.common.Mod;
@@ -37,14 +40,25 @@ public class RpgLoreMod {
 
         // FORGE bus listeners
         MinecraftForge.EVENT_BUS.addListener(this::onServerStarting);
+        MinecraftForge.EVENT_BUS.addListener(this::onServerStopped);
         MinecraftForge.EVENT_BUS.addListener(this::onRegisterCommands);
 
         LOGGER.info("RPG Lore initializing");
     }
 
     private void onServerStarting(final ServerStartingEvent event) {
+        // Set up persistent per-player copy tracking from the overworld's saved data
+        ServerLevel overworld = event.getServer().overworld();
+        LoreTrackingData trackingData = LoreTrackingData.getOrCreate(overworld);
+        BooksConfigLoader.setTrackingData(trackingData);
+
         BooksConfigLoader.ensureDefaults();
         BooksConfigLoader.reload();
+    }
+
+    private void onServerStopped(final ServerStoppedEvent event) {
+        // Clear tracking data reference to avoid holding stale world data
+        BooksConfigLoader.setTrackingData(null);
     }
 
     private void onRegisterCommands(final RegisterCommandsEvent event) {
