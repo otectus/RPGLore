@@ -1,0 +1,15 @@
+{
+  "item.rpg_lore.lore_book": "Sagobok",
+  "item.rpg_lore.lore_codex": "Sagokodex",
+  "rpg_lore.codex.title": "Sagokodex",
+  "rpg_lore.codex.collected": "Ny post: %s",
+  "rpg_lore.codex.counter": "Samlade: %d / %d",
+  "rpg_lore.codex.uncollected": "???",
+  "rpg_lore.codex.duplicate_prevention.on": "Dubblettblockering: P\u00c5",
+  "rpg_lore.codex.duplicate_prevention.off": "Dubblettblockering: AV",
+  "rpg_lore.codex.copy": "Kopiera",
+  "rpg_lore.codex.read": "L\u00e4s",
+  "rpg_lore.codex.tooltip.collected": "Samlade: %d / %d",
+  "rpg_lore.codex.tooltip.duplicates_blocked": "Blockerar dubbletter",
+  "rpg_lore.codex.no_physical_copy": "Du beh\u00f6ver en fysisk kopia av denna bok"
+}

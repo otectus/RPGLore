@@ -1,0 +1,15 @@
+{
+  "item.rpg_lore.lore_book": "Legende gr\u0101mata",
+  "item.rpg_lore.lore_codex": "Legen\u017eu kodekss",
+  "rpg_lore.codex.title": "Legen\u017eu kodekss",
+  "rpg_lore.codex.collected": "Jauns ieraksts: %s",
+  "rpg_lore.codex.counter": "Sav\u0101kts: %d / %d",
+  "rpg_lore.codex.uncollected": "???",
+  "rpg_lore.codex.duplicate_prevention.on": "Dublik\u0101tu blo\u0137\u0113\u0161ana: IESL\u0112GTA",
+  "rpg_lore.codex.duplicate_prevention.off": "Dublik\u0101tu blo\u0137\u0113\u0161ana: IZSL\u0112GTA",
+  "rpg_lore.codex.copy": "Kop\u0113t",
+  "rpg_lore.codex.read": "Las\u012bt",
+  "rpg_lore.codex.tooltip.collected": "Sav\u0101kts: %d / %d",
+  "rpg_lore.codex.tooltip.duplicates_blocked": "Dublik\u0101tu v\u0101k\u0161ana ir blo\u0137\u0113ta",
+  "rpg_lore.codex.no_physical_copy": "Jums ir nepiecie\u0161ama \u0161\u012bs gr\u0101matas fiziska kopija"
+}

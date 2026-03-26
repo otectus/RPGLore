@@ -1,0 +1,15 @@
+{
+  "item.rpg_lore.lore_book": "Incwadi Yenganekwane",
+  "item.rpg_lore.lore_codex": "Ikhodi Yenganekwane",
+  "rpg_lore.codex.title": "Ikhodi Yenganekwane",
+  "rpg_lore.codex.collected": "Okufakiwe okusha: %s",
+  "rpg_lore.codex.counter": "Okuqoqiwe: %d / %d",
+  "rpg_lore.codex.uncollected": "???",
+  "rpg_lore.codex.duplicate_prevention.on": "Ukuvimbela okuphindwayo: KUVULIWE",
+  "rpg_lore.codex.duplicate_prevention.off": "Ukuvimbela okuphindwayo: KUVALWE",
+  "rpg_lore.codex.copy": "Kopisha",
+  "rpg_lore.codex.read": "Funda",
+  "rpg_lore.codex.tooltip.collected": "Okuqoqiwe: %d / %d",
+  "rpg_lore.codex.tooltip.duplicates_blocked": "Ukucosha okuphindwayo kuvimbelwe",
+  "rpg_lore.codex.no_physical_copy": "Udinga ikhophi yangempela yale ncwadi"
+}

@@ -3,12 +3,9 @@ package com.rpglore.config;
 import com.google.gson.*;
 import com.rpglore.RpgLoreMod;
 import com.rpglore.lore.DropCondition;
-import com.rpglore.lore.DropConditionContext;
 import com.rpglore.lore.LoreBookDefinition;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraftforge.fml.loading.FMLPaths;
-
-import com.rpglore.data.LoreTrackingData;
 
 import javax.annotation.Nullable;
 import java.io.IOException;
@@ -17,14 +14,13 @@ import java.nio.file.*;
 import java.util.*;
 import java.util.stream.Stream;
 
+/**
+ * Handles file I/O, JSON parsing, and default generation for lore book definitions.
+ * The loaded book registry and tracking delegation live in {@link LoreBookRegistry}.
+ */
 public final class BooksConfigLoader {
     private static final Gson GSON = new GsonBuilder().setPrettyPrinting().create();
-
-    private static volatile Map<String, LoreBookDefinition> BOOKS = Map.of();
-
-    // Persistent per-player copy tracking, backed by world SavedData
-    @Nullable
-    private static volatile LoreTrackingData trackingData;
+    private static final int MAX_PAGES = 200;
 
     public static Path getBooksDir() {
         return FMLPaths.CONFIGDIR.get().resolve("rpg_lore/books");
@@ -99,6 +95,9 @@ public final class BooksConfigLoader {
                 description       (string)  Brief description shown below the author in the tooltip
                 description_color (string)  Hex color for the description text. Default: aqua
                 hide_generation   (bool)    If true, the generation label (Original, Copy, etc.) is hidden. Default: false
+                show_glint        (bool)    If true, the book has an enchantment glint effect. Default: true
+                category          (string)  Optional category for grouping books in the Codex (e.g. "History", "Mythology")
+                codex_exclude     (bool)    If true, this book will not appear in the Lore Codex. Default: false
 
                 --- Drop Conditions (all optional) ---
 
@@ -126,6 +125,7 @@ public final class BooksConfigLoader {
                   "weight": 5,
                   "title_color": "FFD700",
                   "description": "A faded account of a great battle fought long ago.",
+                  "category": "History",
                   "drop_conditions": {
                     "mob_types": ["minecraft:zombie", "minecraft:skeleton"],
                     "biome_tags": ["minecraft:is_overworld"],
@@ -146,7 +146,7 @@ public final class BooksConfigLoader {
         Path booksDir = getBooksDir();
         if (!Files.isDirectory(booksDir)) {
             RpgLoreMod.LOGGER.warn("Books directory not found: {}", booksDir);
-            BOOKS = Map.of();
+            LoreBookRegistry.setBooks(Map.of());
             return;
         }
 
@@ -174,15 +174,9 @@ public final class BooksConfigLoader {
             RpgLoreMod.LOGGER.error("Failed to scan books directory", e);
         }
 
-        BOOKS = Collections.unmodifiableMap(newBooks);
+        LoreBookRegistry.setBooks(newBooks);
 
-        // Prune tracking entries for books that no longer exist
-        LoreTrackingData data = trackingData;
-        if (data != null) {
-            data.pruneStaleEntries(newBooks.keySet());
-        }
-
-        RpgLoreMod.LOGGER.info("Loaded {} lore book definition(s)", BOOKS.size());
+        RpgLoreMod.LOGGER.info("Loaded {} lore book definition(s)", newBooks.size());
     }
 
     @Nullable
@@ -221,8 +215,21 @@ public final class BooksConfigLoader {
             return null;
         }
 
+        // M5: Warn on excessively long titles
+        if (title.length() > 48) {
+            RpgLoreMod.LOGGER.warn("Lore book '{}' has a very long title ({} chars), may display poorly",
+                    filename, title.length());
+        }
+
         String author = getStringOrDefault(root, "author", "Unknown");
+
+        // H3: Validate and clamp generation to 0-3
         int generation = root.has("generation") ? root.get("generation").getAsInt() : 0;
+        if (generation < 0 || generation > 3) {
+            RpgLoreMod.LOGGER.warn("Lore book '{}' has invalid generation {}, clamping to 0-3", filename, generation);
+            generation = Math.max(0, Math.min(3, generation));
+        }
+
         double weight = root.has("weight") ? root.get("weight").getAsDouble() : 1.0;
         if (weight <= 0) {
             RpgLoreMod.LOGGER.warn("Lore book '{}' has invalid weight {}, clamping to 0.01", filename, weight);
@@ -239,9 +246,11 @@ public final class BooksConfigLoader {
         for (JsonElement elem : root.getAsJsonArray("pages")) {
             if (elem.isJsonPrimitive()) {
                 String pageText = elem.getAsString();
-                // Auto-wrap plain strings as JSON text components
+                // M3: Use Gson for JSON escaping instead of manual implementation
                 if (!pageText.trim().startsWith("{")) {
-                    pageText = "{\"text\":\"" + escapeJsonString(pageText) + "\"}";
+                    JsonObject comp = new JsonObject();
+                    comp.addProperty("text", pageText);
+                    pageText = GSON.toJson(comp);
                 }
                 pages.add(pageText);
             } else if (elem.isJsonObject()) {
@@ -255,6 +264,13 @@ public final class BooksConfigLoader {
             return null;
         }
 
+        // M4: Enforce page count limit
+        if (pages.size() > MAX_PAGES) {
+            RpgLoreMod.LOGGER.warn("Lore book '{}' has {} pages, truncating to {}",
+                    filename, pages.size(), MAX_PAGES);
+            pages = new ArrayList<>(pages.subList(0, MAX_PAGES));
+        }
+
         // Aesthetic fields (all optional)
         String titleColor = parseHexColor(getStringOrDefault(root, "title_color", null), "title_color", filename);
         String authorColor = parseHexColor(getStringOrDefault(root, "author_color", null), "author_color", filename);
@@ -262,11 +278,21 @@ public final class BooksConfigLoader {
         String descriptionColor = parseHexColor(getStringOrDefault(root, "description_color", null), "description_color", filename);
         boolean hideGeneration = root.has("hide_generation") && root.get("hide_generation").getAsBoolean();
 
+        // E3: Per-book glint toggle (default: true for backward compatibility)
+        boolean showGlint = !root.has("show_glint") || root.get("show_glint").getAsBoolean();
+
+        // E4: Category field
+        String category = getStringOrDefault(root, "category", null);
+
+        // Codex exclusion
+        boolean codexExclude = root.has("codex_exclude") && root.get("codex_exclude").getAsBoolean();
+
         // drop_conditions (optional)
         DropCondition dropCondition = parseDropCondition(root, filename);
 
         return new LoreBookDefinition(id, title, author, generation, weight, dropCondition, pages,
-                titleColor, authorColor, description, descriptionColor, hideGeneration);
+                titleColor, authorColor, description, descriptionColor, hideGeneration,
+                showGlint, category, codexExclude);
     }
 
     private static DropCondition parseDropCondition(JsonObject root, String filename) {
@@ -306,52 +332,20 @@ public final class BooksConfigLoader {
         boolean requirePlayerKill = !drop.has("require_player_kill") || drop.get("require_player_kill").getAsBoolean();
 
         Double baseChance = drop.has("base_chance") ? drop.get("base_chance").getAsDouble() : null;
+
+        // M9: Validate max_copies_per_player range
         int maxCopiesPerPlayer = drop.has("max_copies_per_player") ? drop.get("max_copies_per_player").getAsInt() : -1;
+        if (maxCopiesPerPlayer < -1) {
+            RpgLoreMod.LOGGER.warn("Lore book '{}' has invalid max_copies_per_player {}, using -1 (unlimited)",
+                    filename, maxCopiesPerPlayer);
+            maxCopiesPerPlayer = -1;
+        }
 
         return new DropCondition(
                 mobTypes, mobTags, biomes, biomeTags, dimensions,
                 minY, maxY, time, weather,
                 requirePlayerKill, baseChance, maxCopiesPerPlayer
         );
-    }
-
-    // --- Query methods ---
-
-    public static List<LoreBookDefinition> getMatchingBooks(DropConditionContext ctx) {
-        List<LoreBookDefinition> matching = new ArrayList<>();
-        for (LoreBookDefinition def : BOOKS.values()) {
-            if (ctx.matches(def.dropCondition())) {
-                matching.add(def);
-            }
-        }
-        return matching;
-    }
-
-    public static Collection<LoreBookDefinition> getAllBooks() {
-        return BOOKS.values();
-    }
-
-    public static Optional<LoreBookDefinition> getById(String id) {
-        return Optional.ofNullable(BOOKS.get(id));
-    }
-
-    // --- Per-player copy tracking (delegated to LoreTrackingData) ---
-
-    public static void setTrackingData(@Nullable LoreTrackingData data) {
-        trackingData = data;
-    }
-
-    public static boolean canPlayerReceive(UUID playerUuid, String bookId, int maxCopies) {
-        LoreTrackingData data = trackingData;
-        if (data == null) return true;
-        return data.canPlayerReceive(playerUuid, bookId, maxCopies);
-    }
-
-    public static void recordPlayerReceived(UUID playerUuid, String bookId) {
-        LoreTrackingData data = trackingData;
-        if (data != null) {
-            data.recordPlayerReceived(playerUuid, bookId);
-        }
     }
 
     // --- Parsing helpers ---
@@ -396,14 +390,6 @@ public final class BooksConfigLoader {
             return null;
         }
         return hex.toUpperCase();
-    }
-
-    private static String escapeJsonString(String s) {
-        return s.replace("\\", "\\\\")
-                .replace("\"", "\\\"")
-                .replace("\n", "\\n")
-                .replace("\r", "\\r")
-                .replace("\t", "\\t");
     }
 
     private BooksConfigLoader() {}

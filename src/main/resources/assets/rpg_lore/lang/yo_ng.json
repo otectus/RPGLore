@@ -1,0 +1,15 @@
+{
+  "item.rpg_lore.lore_book": "\u00ccw\u00e9 \u00cctan",
+  "item.rpg_lore.lore_codex": "K\u00f3d\u025b\u0301k\u00ecs\u00ec \u00cctan",
+  "rpg_lore.codex.title": "K\u00f3d\u025b\u0301k\u00ecs\u00ec \u00cctan",
+  "rpg_lore.codex.collected": "\u00c0k\u00f3s\u00edl\u1eb9\u0300 t\u00fat\u00fan: %s",
+  "rpg_lore.codex.counter": "T\u00ed a k\u00f3: %d / %d",
+  "rpg_lore.codex.uncollected": "???",
+  "rpg_lore.codex.duplicate_prevention.on": "D\u00edd\u00e1 \u00e0d\u00e1k\u00f2: \u0160\u00cd\u0160\u00cd",
+  "rpg_lore.codex.duplicate_prevention.off": "D\u00edd\u00e1 \u00e0d\u00e1k\u00f2: P\u00c0\u00c1\u00c0",
+  "rpg_lore.codex.copy": "D\u00e0k\u00f2",
+  "rpg_lore.codex.read": "K\u00e0w\u00e9",
+  "rpg_lore.codex.tooltip.collected": "T\u00ed a k\u00f3: %d / %d",
+  "rpg_lore.codex.tooltip.duplicates_blocked": "A \u0144 d\u00ed gba \u00e0d\u00e1k\u00f2 l\u00f3w\u00f3",
+  "rpg_lore.codex.no_physical_copy": "O n\u00edl\u00f2 \u00e0d\u00e0k\u00f2 gangan ti \u00ecw\u00e9 y\u00ec\u00ed"
+}

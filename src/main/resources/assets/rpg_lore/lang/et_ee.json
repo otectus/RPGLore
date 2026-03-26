@@ -1,0 +1,15 @@
+{
+  "item.rpg_lore.lore_book": "P\u00e4rimusraamat",
+  "item.rpg_lore.lore_codex": "P\u00e4rimuskoodeks",
+  "rpg_lore.codex.title": "P\u00e4rimuskoodeks",
+  "rpg_lore.codex.collected": "Uus kirje: %s",
+  "rpg_lore.codex.counter": "Kogutud: %d / %d",
+  "rpg_lore.codex.uncollected": "???",
+  "rpg_lore.codex.duplicate_prevention.on": "Duplikaatide blokeerimine: SEES",
+  "rpg_lore.codex.duplicate_prevention.off": "Duplikaatide blokeerimine: V\u00c4LJAS",
+  "rpg_lore.codex.copy": "Kopeeri",
+  "rpg_lore.codex.read": "Loe",
+  "rpg_lore.codex.tooltip.collected": "Kogutud: %d / %d",
+  "rpg_lore.codex.tooltip.duplicates_blocked": "Duplikaatide korjamine on blokeeritud",
+  "rpg_lore.codex.no_physical_copy": "Vajate selle raamatu f\u00fc\u00fcsilist koopiat"
+}

@@ -1,0 +1,15 @@
+{
+  "item.rpg_lore.lore_book": "Legend\u0173 knyga",
+  "item.rpg_lore.lore_codex": "Legend\u0173 kodeksas",
+  "rpg_lore.codex.title": "Legend\u0173 kodeksas",
+  "rpg_lore.codex.collected": "Naujas \u012fra\u0161as: %s",
+  "rpg_lore.codex.counter": "Surinkta: %d / %d",
+  "rpg_lore.codex.uncollected": "???",
+  "rpg_lore.codex.duplicate_prevention.on": "Dublikat\u0173 blokavimas: \u012eJ.",
+  "rpg_lore.codex.duplicate_prevention.off": "Dublikat\u0173 blokavimas: I\u0160J.",
+  "rpg_lore.codex.copy": "Kopijuoti",
+  "rpg_lore.codex.read": "Skaityti",
+  "rpg_lore.codex.tooltip.collected": "Surinkta: %d / %d",
+  "rpg_lore.codex.tooltip.duplicates_blocked": "Dublikat\u0173 rinkimas u\u017eblokuotas",
+  "rpg_lore.codex.no_physical_copy": "Jums reikia fizin\u0117s \u0161ios knygos kopijos"
+}

@@ -1,0 +1,15 @@
+{
+  "item.rpg_lore.lore_book": "\uc804\uc2b9\uc758 \uc11c",
+  "item.rpg_lore.lore_codex": "\uc804\uc2b9 \ucf54\ub371\uc2a4",
+  "rpg_lore.codex.title": "\uc804\uc2b9 \ucf54\ub371\uc2a4",
+  "rpg_lore.codex.collected": "\uc0c8 \ud56d\ubaa9: %s",
+  "rpg_lore.codex.counter": "\uc218\uc9d1: %d / %d",
+  "rpg_lore.codex.uncollected": "???",
+  "rpg_lore.codex.duplicate_prevention.on": "\uc911\ubcf5 \ubc29\uc9c0: \ucf1c\uc9d0",
+  "rpg_lore.codex.duplicate_prevention.off": "\uc911\ubcf5 \ubc29\uc9c0: \uaebc\uc9d0",
+  "rpg_lore.codex.copy": "\ubcf5\uc0ac",
+  "rpg_lore.codex.read": "\uc77d\uae30",
+  "rpg_lore.codex.tooltip.collected": "\uc218\uc9d1: %d / %d",
+  "rpg_lore.codex.tooltip.duplicates_blocked": "\uc911\ubcf5 \uc544\uc774\ud15c \uc90d\uae30 \ucc28\ub2e8 \uc911",
+  "rpg_lore.codex.no_physical_copy": "\uc774 \ucc45\uc758 \uc2e4\ubb3c \uc0ac\ubcf8\uc774 \ud544\uc694\ud569\ub2c8\ub2e4"
+}

@@ -1,0 +1,15 @@
+{
+  "item.rpg_lore.lore_book": "Llibre de Llegendes",
+  "item.rpg_lore.lore_codex": "C\u00f2dex de Llegendes",
+  "rpg_lore.codex.title": "C\u00f2dex de Llegendes",
+  "rpg_lore.codex.collected": "Nova entrada: %s",
+  "rpg_lore.codex.counter": "Recollits: %d / %d",
+  "rpg_lore.codex.uncollected": "???",
+  "rpg_lore.codex.duplicate_prevention.on": "Bloqueig de duplicats: ACTIVAT",
+  "rpg_lore.codex.duplicate_prevention.off": "Bloqueig de duplicats: DESACTIVAT",
+  "rpg_lore.codex.copy": "Copiar",
+  "rpg_lore.codex.read": "Llegir",
+  "rpg_lore.codex.tooltip.collected": "Recollits: %d / %d",
+  "rpg_lore.codex.tooltip.duplicates_blocked": "Bloquejant la recollida de duplicats",
+  "rpg_lore.codex.no_physical_copy": "Necessites una c\u00f2pia f\u00edsica d\u2019aquest llibre"
+}

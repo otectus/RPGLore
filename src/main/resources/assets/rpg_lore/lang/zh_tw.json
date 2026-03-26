@@ -1,0 +1,15 @@
+{
+  "item.rpg_lore.lore_book": "\u50b3\u8aaa\u66f8\u7c4d",
+  "item.rpg_lore.lore_codex": "\u50b3\u8aaa\u5178\u7c4d",
+  "rpg_lore.codex.title": "\u50b3\u8aaa\u5178\u7c4d",
+  "rpg_lore.codex.collected": "\u65b0\u689d\u76ee\uff1a%s",
+  "rpg_lore.codex.counter": "\u5df2\u6536\u96c6\uff1a%d / %d",
+  "rpg_lore.codex.uncollected": "\uff1f\uff1f\uff1f",
+  "rpg_lore.codex.duplicate_prevention.on": "\u91cd\u8907\u6514\u622a\uff1a\u958b\u555f",
+  "rpg_lore.codex.duplicate_prevention.off": "\u91cd\u8907\u6514\u622a\uff1a\u95dc\u9589",
+  "rpg_lore.codex.copy": "\u8907\u88fd",
+  "rpg_lore.codex.read": "\u95b1\u8b80",
+  "rpg_lore.codex.tooltip.collected": "\u5df2\u6536\u96c6\uff1a%d / %d",
+  "rpg_lore.codex.tooltip.duplicates_blocked": "\u6b63\u5728\u6514\u622a\u91cd\u8907\u62fe\u53d6",
+  "rpg_lore.codex.no_physical_copy": "\u4f60\u9700\u8981\u9019\u672c\u66f8\u7684\u5be6\u9ad4\u526f\u672c"
+}

@@ -1,0 +1,15 @@
+{
+  "item.rpg_lore.lore_book": "Legendeboek",
+  "item.rpg_lore.lore_codex": "Legendecodex",
+  "rpg_lore.codex.title": "Legendecodex",
+  "rpg_lore.codex.collected": "Nieuw item: %s",
+  "rpg_lore.codex.counter": "Verzameld: %d / %d",
+  "rpg_lore.codex.uncollected": "???",
+  "rpg_lore.codex.duplicate_prevention.on": "Duplicaatblokkering: AAN",
+  "rpg_lore.codex.duplicate_prevention.off": "Duplicaatblokkering: UIT",
+  "rpg_lore.codex.copy": "Kopi\u00ebren",
+  "rpg_lore.codex.read": "Lezen",
+  "rpg_lore.codex.tooltip.collected": "Verzameld: %d / %d",
+  "rpg_lore.codex.tooltip.duplicates_blocked": "Duplicaten worden geblokkeerd",
+  "rpg_lore.codex.no_physical_copy": "Je hebt een fysiek exemplaar van dit boek nodig"
+}

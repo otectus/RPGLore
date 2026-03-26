@@ -1,15 +1,21 @@
 package com.rpglore;
 
+import com.rpglore.codex.CodexEventHandler;
+import com.rpglore.codex.CodexTrackingData;
 import com.rpglore.command.RpgLoreCommands;
 import com.rpglore.config.BooksConfigLoader;
 import com.rpglore.config.ClientConfig;
+import com.rpglore.config.LoreBookRegistry;
 import com.rpglore.config.ServerConfig;
 import com.rpglore.data.LoreTrackingData;
 import com.rpglore.loot.ModLootModifiers;
+import com.rpglore.network.ModNetwork;
 import com.rpglore.registry.ModItems;
 import com.mojang.logging.LogUtils;
 import net.minecraft.server.level.ServerLevel;
+import net.minecraft.world.item.CreativeModeTabs;
 import net.minecraftforge.common.MinecraftForge;
+import net.minecraftforge.event.BuildCreativeModeTabContentsEvent;
 import net.minecraftforge.event.RegisterCommandsEvent;
 import net.minecraftforge.event.server.ServerStartingEvent;
 import net.minecraftforge.event.server.ServerStoppedEvent;
@@ -38,27 +44,54 @@ public class RpgLoreMod {
         ModLoadingContext.get().registerConfig(ModConfig.Type.CLIENT, ClientConfig.SPEC,
                 "rpg_lore/client.toml");
 
+        // Register network channel
+        ModNetwork.register();
+
+        // MOD bus listeners
+        modEventBus.addListener(this::onBuildCreativeTabContents);
+
         // FORGE bus listeners
         MinecraftForge.EVENT_BUS.addListener(this::onServerStarting);
         MinecraftForge.EVENT_BUS.addListener(this::onServerStopped);
         MinecraftForge.EVENT_BUS.addListener(this::onRegisterCommands);
 
+        // Register Codex event handler
+        MinecraftForge.EVENT_BUS.register(CodexEventHandler.class);
+
         LOGGER.info("RPG Lore initializing");
     }
 
+    // L1: Creative tab registration
+    private void onBuildCreativeTabContents(BuildCreativeModeTabContentsEvent event) {
+        if (event.getTabKey() == CreativeModeTabs.TOOLS_AND_UTILITIES) {
+            event.accept(ModItems.LORE_BOOK);
+            event.accept(ModItems.LORE_CODEX);
+        }
+    }
+
     private void onServerStarting(final ServerStartingEvent event) {
-        // Set up persistent per-player copy tracking from the overworld's saved data
         ServerLevel overworld = event.getServer().overworld();
+
+        // Set up persistent per-player copy tracking from the overworld's saved data
         LoreTrackingData trackingData = LoreTrackingData.getOrCreate(overworld);
-        BooksConfigLoader.setTrackingData(trackingData);
+        LoreBookRegistry.setTrackingData(trackingData);
+
+        // Set up Codex tracking data
+        CodexTrackingData codexData = CodexTrackingData.getOrCreate(overworld);
+        CodexTrackingData.setInstance(codexData);
 
         BooksConfigLoader.ensureDefaults();
         BooksConfigLoader.reload();
+
+        // Prune stale entries from both tracking systems
+        trackingData.pruneStaleEntries(LoreBookRegistry.getAllBookIds());
+        codexData.pruneStaleEntries(LoreBookRegistry.getAllBookIds());
     }
 
     private void onServerStopped(final ServerStoppedEvent event) {
-        // Clear tracking data reference to avoid holding stale world data
-        BooksConfigLoader.setTrackingData(null);
+        // Clear tracking data references to avoid holding stale world data
+        LoreBookRegistry.setTrackingData(null);
+        CodexTrackingData.setInstance(null);
     }
 
     private void onRegisterCommands(final RegisterCommandsEvent event) {

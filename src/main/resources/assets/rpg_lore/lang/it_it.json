@@ -1,0 +1,15 @@
+{
+  "item.rpg_lore.lore_book": "Libro delle Leggende",
+  "item.rpg_lore.lore_codex": "Codice delle Leggende",
+  "rpg_lore.codex.title": "Codice delle Leggende",
+  "rpg_lore.codex.collected": "Nuova voce: %s",
+  "rpg_lore.codex.counter": "Raccolti: %d / %d",
+  "rpg_lore.codex.uncollected": "???",
+  "rpg_lore.codex.duplicate_prevention.on": "Blocco duplicati: ATTIVO",
+  "rpg_lore.codex.duplicate_prevention.off": "Blocco duplicati: DISATTIVO",
+  "rpg_lore.codex.copy": "Copia",
+  "rpg_lore.codex.read": "Leggi",
+  "rpg_lore.codex.tooltip.collected": "Raccolti: %d / %d",
+  "rpg_lore.codex.tooltip.duplicates_blocked": "Raccolta duplicati bloccata",
+  "rpg_lore.codex.no_physical_copy": "Hai bisogno di una copia fisica di questo libro"
+}

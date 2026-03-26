@@ -1,0 +1,15 @@
+{
+  "item.rpg_lore.lore_book": "Livre de L\u00e9gendes",
+  "item.rpg_lore.lore_codex": "Codex des L\u00e9gendes",
+  "rpg_lore.codex.title": "Codex des L\u00e9gendes",
+  "rpg_lore.codex.collected": "Nouvelle entr\u00e9e : %s",
+  "rpg_lore.codex.counter": "Collect\u00e9s : %d / %d",
+  "rpg_lore.codex.uncollected": "???",
+  "rpg_lore.codex.duplicate_prevention.on": "Blocage des doublons : ACTIV\u00c9",
+  "rpg_lore.codex.duplicate_prevention.off": "Blocage des doublons : D\u00c9SACTIV\u00c9",
+  "rpg_lore.codex.copy": "Copier",
+  "rpg_lore.codex.read": "Lire",
+  "rpg_lore.codex.tooltip.collected": "Collect\u00e9s : %d / %d",
+  "rpg_lore.codex.tooltip.duplicates_blocked": "Blocage de la collecte des doublons",
+  "rpg_lore.codex.no_physical_copy": "Vous avez besoin d\u2019un exemplaire physique de ce livre"
+}

@@ -1,0 +1,15 @@
+{
+  "item.rpg_lore.lore_book": "Libro de Lendas",
+  "item.rpg_lore.lore_codex": "C\u00f3dice de Lendas",
+  "rpg_lore.codex.title": "C\u00f3dice de Lendas",
+  "rpg_lore.codex.collected": "Nova entrada: %s",
+  "rpg_lore.codex.counter": "Recollidos: %d / %d",
+  "rpg_lore.codex.uncollected": "???",
+  "rpg_lore.codex.duplicate_prevention.on": "Bloqueo de duplicados: ACTIVADO",
+  "rpg_lore.codex.duplicate_prevention.off": "Bloqueo de duplicados: DESACTIVADO",
+  "rpg_lore.codex.copy": "Copiar",
+  "rpg_lore.codex.read": "Ler",
+  "rpg_lore.codex.tooltip.collected": "Recollidos: %d / %d",
+  "rpg_lore.codex.tooltip.duplicates_blocked": "Bloqueando a recollida de duplicados",
+  "rpg_lore.codex.no_physical_copy": "Necesitas unha copia f\u00edsica deste libro"
+}

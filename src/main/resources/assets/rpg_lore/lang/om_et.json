@@ -1,0 +1,15 @@
+{
+  "item.rpg_lore.lore_book": "Kitaaba Seenaa",
+  "item.rpg_lore.lore_codex": "Koodeksii Seenaa",
+  "rpg_lore.codex.title": "Koodeksii Seenaa",
+  "rpg_lore.codex.collected": "Galmeessa haaraa: %s",
+  "rpg_lore.codex.counter": "Kan walitti qabame: %d / %d",
+  "rpg_lore.codex.uncollected": "???",
+  "rpg_lore.codex.duplicate_prevention.on": "Irra deddeebi'uu dhorkuu: BANAA",
+  "rpg_lore.codex.duplicate_prevention.off": "Irra deddeebi'uu dhorkuu: CUFAA",
+  "rpg_lore.codex.copy": "Waraabi",
+  "rpg_lore.codex.read": "Dubbisi",
+  "rpg_lore.codex.tooltip.collected": "Kan walitti qabame: %d / %d",
+  "rpg_lore.codex.tooltip.duplicates_blocked": "Irra deddeebi'uu funaanuun dhorkamaa jira",
+  "rpg_lore.codex.no_physical_copy": "Kitaaba kana koppii qaamaa ni barbaachisa"
+}

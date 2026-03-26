@@ -1,0 +1,15 @@
+{
+  "item.rpg_lore.lore_book": "Legendak\u00f6nyv",
+  "item.rpg_lore.lore_codex": "Legendak\u00f3dex",
+  "rpg_lore.codex.title": "Legendak\u00f3dex",
+  "rpg_lore.codex.collected": "\u00daj bejegyz\u00e9s: %s",
+  "rpg_lore.codex.counter": "Gy\u0171jtve: %d / %d",
+  "rpg_lore.codex.uncollected": "???",
+  "rpg_lore.codex.duplicate_prevention.on": "Duplik\u00e1tumblokk: BEKAPCSOLVA",
+  "rpg_lore.codex.duplicate_prevention.off": "Duplik\u00e1tumblokk: KIKAPCSOLVA",
+  "rpg_lore.codex.copy": "M\u00e1sol\u00e1s",
+  "rpg_lore.codex.read": "Olvas\u00e1s",
+  "rpg_lore.codex.tooltip.collected": "Gy\u0171jtve: %d / %d",
+  "rpg_lore.codex.tooltip.duplicates_blocked": "Duplik\u00e1tumok felv\u00e9tele blokkol\u00e1s alatt",
+  "rpg_lore.codex.no_physical_copy": "Sz\u00fcks\u00e9ged van egy fizikai p\u00e9ld\u00e1nyra ebb\u0151l a k\u00f6nyvb\u0151l"
+}

@@ -1,0 +1,15 @@
+{
+  "item.rpg_lore.lore_book": "Kniha pr\u00edbehov",
+  "item.rpg_lore.lore_codex": "Kodex pr\u00edbehov",
+  "rpg_lore.codex.title": "Kodex pr\u00edbehov",
+  "rpg_lore.codex.collected": "Nov\u00fd z\u00e1znam: %s",
+  "rpg_lore.codex.counter": "Zozbieran\u00e9: %d / %d",
+  "rpg_lore.codex.uncollected": "???",
+  "rpg_lore.codex.duplicate_prevention.on": "Blokovanie duplik\u00e1tov: ZAPNUT\u00c9",
+  "rpg_lore.codex.duplicate_prevention.off": "Blokovanie duplik\u00e1tov: VYPNUT\u00c9",
+  "rpg_lore.codex.copy": "Kop\u00edrova\u0165",
+  "rpg_lore.codex.read": "\u010c\u00edta\u0165",
+  "rpg_lore.codex.tooltip.collected": "Zozbieran\u00e9: %d / %d",
+  "rpg_lore.codex.tooltip.duplicates_blocked": "Zber duplik\u00e1tov je blokovan\u00fd",
+  "rpg_lore.codex.no_physical_copy": "Potrebuje\u0161 fyzick\u00fa k\u00f3piu tejto knihy"
+}

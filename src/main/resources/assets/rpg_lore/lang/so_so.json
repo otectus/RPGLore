@@ -1,0 +1,15 @@
+{
+  "item.rpg_lore.lore_book": "Buugga Sheekada",
+  "item.rpg_lore.lore_codex": "Kodekiska Sheekada",
+  "rpg_lore.codex.title": "Kodekiska Sheekada",
+  "rpg_lore.codex.collected": "Gelitaan cusub: %s",
+  "rpg_lore.codex.counter": "La ururiyey: %d / %d",
+  "rpg_lore.codex.uncollected": "???",
+  "rpg_lore.codex.duplicate_prevention.on": "Ka hortagga nuqullada: SHIDDAY",
+  "rpg_lore.codex.duplicate_prevention.off": "Ka hortagga nuqullada: DAMIYEY",
+  "rpg_lore.codex.copy": "Nuqul",
+  "rpg_lore.codex.read": "Akhri",
+  "rpg_lore.codex.tooltip.collected": "La ururiyey: %d / %d",
+  "rpg_lore.codex.tooltip.duplicates_blocked": "Qaadista nuqullada waa la xannibay",
+  "rpg_lore.codex.no_physical_copy": "Waxaad u baahan tahay nuqul jireed ah oo buuggan ah"
+}

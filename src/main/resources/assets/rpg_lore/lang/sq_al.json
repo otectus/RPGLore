@@ -1,0 +1,15 @@
+{
+  "item.rpg_lore.lore_book": "Libri i Legjendave",
+  "item.rpg_lore.lore_codex": "Kodeku i Legjendave",
+  "rpg_lore.codex.title": "Kodeku i Legjendave",
+  "rpg_lore.codex.collected": "Hyrje e re: %s",
+  "rpg_lore.codex.counter": "T\u00eb mbledhura: %d / %d",
+  "rpg_lore.codex.uncollected": "???",
+  "rpg_lore.codex.duplicate_prevention.on": "Bllokimi i dublikatave: AKTIV",
+  "rpg_lore.codex.duplicate_prevention.off": "Bllokimi i dublikatave: JOAKTIV",
+  "rpg_lore.codex.copy": "Kopjo",
+  "rpg_lore.codex.read": "Lexo",
+  "rpg_lore.codex.tooltip.collected": "T\u00eb mbledhura: %d / %d",
+  "rpg_lore.codex.tooltip.duplicates_blocked": "Mbledhja e dublikatave \u00ebsht\u00eb bllokuar",
+  "rpg_lore.codex.no_physical_copy": "Ju duhet nj\u00eb kopje fizike e k\u00ebtij libri"
+}

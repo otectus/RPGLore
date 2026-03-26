@@ -25,13 +25,19 @@ import java.util.List;
 
 public class LoreBookItem extends WrittenBookItem {
 
+    private static final String TOOLTIP_SEPARATOR = "----------";
+
     public LoreBookItem(Properties properties) {
         super(properties);
     }
 
     @Override
     public boolean isFoil(ItemStack stack) {
-        return true;
+        CompoundTag tag = stack.getTag();
+        if (tag != null && tag.contains("lore_show_glint")) {
+            return tag.getBoolean("lore_show_glint");
+        }
+        return true; // default: glint enabled
     }
 
     /**
@@ -127,7 +133,7 @@ public class LoreBookItem extends WrittenBookItem {
         if (tag.contains("lore_description")) {
             String description = tag.getString("lore_description");
             if (!description.isEmpty()) {
-                tooltip.add(Component.literal("----------")
+                tooltip.add(Component.literal(TOOLTIP_SEPARATOR)
                         .withStyle(ChatFormatting.DARK_GRAY));
 
                 Style descStyle = Style.EMPTY.withItalic(true);
@@ -192,6 +198,13 @@ public class LoreBookItem extends WrittenBookItem {
         }
         if (def.hideGeneration()) {
             tag.putBoolean("lore_hide_generation", true);
+        }
+        tag.putBoolean("lore_show_glint", def.showGlint());
+        if (def.category() != null && !def.category().isEmpty()) {
+            tag.putString("lore_category", def.category());
+        }
+        if (def.codexExclude()) {
+            tag.putBoolean("lore_codex_exclude", true);
         }
 
         return stack;

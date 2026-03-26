@@ -1,0 +1,15 @@
+{
+  "item.rpg_lore.lore_book": "Kniha p\u0159\u00edb\u011bh\u016f",
+  "item.rpg_lore.lore_codex": "Kodex p\u0159\u00edb\u011bh\u016f",
+  "rpg_lore.codex.title": "Kodex p\u0159\u00edb\u011bh\u016f",
+  "rpg_lore.codex.collected": "Nov\u00fd z\u00e1znam: %s",
+  "rpg_lore.codex.counter": "Sebr\u00e1no: %d / %d",
+  "rpg_lore.codex.uncollected": "???",
+  "rpg_lore.codex.duplicate_prevention.on": "Blokov\u00e1n\u00ed duplik\u00e1t\u016f: ZAPNUTO",
+  "rpg_lore.codex.duplicate_prevention.off": "Blokov\u00e1n\u00ed duplik\u00e1t\u016f: VYPNUTO",
+  "rpg_lore.codex.copy": "Kop\u00edrovat",
+  "rpg_lore.codex.read": "\u010c\u00edst",
+  "rpg_lore.codex.tooltip.collected": "Sebr\u00e1no: %d / %d",
+  "rpg_lore.codex.tooltip.duplicates_blocked": "Sb\u011br duplik\u00e1t\u016f je blokov\u00e1n",
+  "rpg_lore.codex.no_physical_copy": "Pot\u0159ebuje\u0161 fyzickou kopii t\u00e9to knihy"
+}

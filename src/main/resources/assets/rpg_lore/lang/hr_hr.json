@@ -1,0 +1,15 @@
+{
+  "item.rpg_lore.lore_book": "Knjiga legendi",
+  "item.rpg_lore.lore_codex": "Kodeks legendi",
+  "rpg_lore.codex.title": "Kodeks legendi",
+  "rpg_lore.codex.collected": "Novi unos: %s",
+  "rpg_lore.codex.counter": "Prikupljeno: %d / %d",
+  "rpg_lore.codex.uncollected": "???",
+  "rpg_lore.codex.duplicate_prevention.on": "Blokada duplikata: UKLJU\u010cENO",
+  "rpg_lore.codex.duplicate_prevention.off": "Blokada duplikata: ISKLJU\u010cENO",
+  "rpg_lore.codex.copy": "Kopiraj",
+  "rpg_lore.codex.read": "\u010citaj",
+  "rpg_lore.codex.tooltip.collected": "Prikupljeno: %d / %d",
+  "rpg_lore.codex.tooltip.duplicates_blocked": "Prikupljanje duplikata je blokirano",
+  "rpg_lore.codex.no_physical_copy": "Potrebna vam je fizi\u010dka kopija ove knjige"
+}

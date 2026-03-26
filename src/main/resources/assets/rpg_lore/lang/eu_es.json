@@ -1,0 +1,15 @@
+{
+  "item.rpg_lore.lore_book": "Kondairen Liburua",
+  "item.rpg_lore.lore_codex": "Kondairen Kodexea",
+  "rpg_lore.codex.title": "Kondairen Kodexea",
+  "rpg_lore.codex.collected": "Sarrera berria: %s",
+  "rpg_lore.codex.counter": "Bildutakoak: %d / %d",
+  "rpg_lore.codex.uncollected": "???",
+  "rpg_lore.codex.duplicate_prevention.on": "Bikoiztuen blokeoa: AKTIBATUTA",
+  "rpg_lore.codex.duplicate_prevention.off": "Bikoiztuen blokeoa: DESAKTIBATUTA",
+  "rpg_lore.codex.copy": "Kopiatu",
+  "rpg_lore.codex.read": "Irakurri",
+  "rpg_lore.codex.tooltip.collected": "Bildutakoak: %d / %d",
+  "rpg_lore.codex.tooltip.duplicates_blocked": "Bikoiztuen bilketa blokeatzen",
+  "rpg_lore.codex.no_physical_copy": "Liburu honen kopia fisikoa behar duzu"
+}

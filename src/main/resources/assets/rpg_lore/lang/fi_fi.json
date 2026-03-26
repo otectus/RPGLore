@@ -1,0 +1,15 @@
+{
+  "item.rpg_lore.lore_book": "Tarinakirja",
+  "item.rpg_lore.lore_codex": "Tarinakoodeksi",
+  "rpg_lore.codex.title": "Tarinakoodeksi",
+  "rpg_lore.codex.collected": "Uusi merkint\u00e4: %s",
+  "rpg_lore.codex.counter": "Ker\u00e4tty: %d / %d",
+  "rpg_lore.codex.uncollected": "???",
+  "rpg_lore.codex.duplicate_prevention.on": "Kaksoiskappaleiden esto: P\u00c4\u00c4LL\u00c4",
+  "rpg_lore.codex.duplicate_prevention.off": "Kaksoiskappaleiden esto: POIS",
+  "rpg_lore.codex.copy": "Kopioi",
+  "rpg_lore.codex.read": "Lue",
+  "rpg_lore.codex.tooltip.collected": "Ker\u00e4tty: %d / %d",
+  "rpg_lore.codex.tooltip.duplicates_blocked": "Kaksoiskappaleiden poiminta estetty",
+  "rpg_lore.codex.no_physical_copy": "Tarvitset fyysisen kopion t\u00e4st\u00e4 kirjasta"
+}

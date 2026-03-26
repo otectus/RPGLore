@@ -1,0 +1,15 @@
+{
+  "item.rpg_lore.lore_book": "Libro de Leyendas",
+  "item.rpg_lore.lore_codex": "C\u00f3dice de Leyendas",
+  "rpg_lore.codex.title": "C\u00f3dice de Leyendas",
+  "rpg_lore.codex.collected": "Nueva entrada: %s",
+  "rpg_lore.codex.counter": "Recopilados: %d / %d",
+  "rpg_lore.codex.uncollected": "???",
+  "rpg_lore.codex.duplicate_prevention.on": "Bloqueo de duplicados: ACTIVADO",
+  "rpg_lore.codex.duplicate_prevention.off": "Bloqueo de duplicados: DESACTIVADO",
+  "rpg_lore.codex.copy": "Copiar",
+  "rpg_lore.codex.read": "Leer",
+  "rpg_lore.codex.tooltip.collected": "Recopilados: %d / %d",
+  "rpg_lore.codex.tooltip.duplicates_blocked": "Bloqueando recogida de duplicados",
+  "rpg_lore.codex.no_physical_copy": "Necesitas una copia f\u00edsica de este libro"
+}

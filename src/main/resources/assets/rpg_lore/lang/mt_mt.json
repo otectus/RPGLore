@@ -1,0 +1,15 @@
+{
+  "item.rpg_lore.lore_book": "Ktieb tal-Le\u0121\u0121endi",
+  "item.rpg_lore.lore_codex": "Kodi\u010bi tal-Le\u0121\u0121endi",
+  "rpg_lore.codex.title": "Kodi\u010bi tal-Le\u0121\u0121endi",
+  "rpg_lore.codex.collected": "Da\u0127la \u0121dida: %s",
+  "rpg_lore.codex.counter": "Mi\u0121bura: %d / %d",
+  "rpg_lore.codex.uncollected": "???",
+  "rpg_lore.codex.duplicate_prevention.on": "Imblukkar id-duplikati: MIXG\u0126UL",
+  "rpg_lore.codex.duplicate_prevention.off": "Imblukkar id-duplikati: MITFI",
+  "rpg_lore.codex.copy": "Ikkopja",
+  "rpg_lore.codex.read": "Aqra",
+  "rpg_lore.codex.tooltip.collected": "Mi\u0121bura: %d / %d",
+  "rpg_lore.codex.tooltip.duplicates_blocked": "Il-\u0121bir tad-duplikati huwa mblukkat",
+  "rpg_lore.codex.no_physical_copy": "G\u0127andek b\u017conn ta\u2019 kopja fi\u017cika ta\u2019 dan il-ktieb"
+}

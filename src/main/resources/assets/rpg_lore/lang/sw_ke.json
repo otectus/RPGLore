@@ -1,0 +1,15 @@
+{
+  "item.rpg_lore.lore_book": "Kitabu cha Hadithi",
+  "item.rpg_lore.lore_codex": "Kodeksi ya Hadithi",
+  "rpg_lore.codex.title": "Kodeksi ya Hadithi",
+  "rpg_lore.codex.collected": "Ingizo mpya: %s",
+  "rpg_lore.codex.counter": "Zilizokusanywa: %d / %d",
+  "rpg_lore.codex.uncollected": "???",
+  "rpg_lore.codex.duplicate_prevention.on": "Kuzuia nakala pacha: IMEWASHWA",
+  "rpg_lore.codex.duplicate_prevention.off": "Kuzuia nakala pacha: IMEZIMWA",
+  "rpg_lore.codex.copy": "Nakili",
+  "rpg_lore.codex.read": "Soma",
+  "rpg_lore.codex.tooltip.collected": "Zilizokusanywa: %d / %d",
+  "rpg_lore.codex.tooltip.duplicates_blocked": "Kuchukua nakala pacha kumezuiwa",
+  "rpg_lore.codex.no_physical_copy": "Unahitaji nakala halisi ya kitabu hiki"
+}

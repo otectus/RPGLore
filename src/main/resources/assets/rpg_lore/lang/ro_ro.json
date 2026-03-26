@@ -1,0 +1,15 @@
+{
+  "item.rpg_lore.lore_book": "Carte de Legende",
+  "item.rpg_lore.lore_codex": "Codex de Legende",
+  "rpg_lore.codex.title": "Codex de Legende",
+  "rpg_lore.codex.collected": "Intrare nou\u0103: %s",
+  "rpg_lore.codex.counter": "Colectate: %d / %d",
+  "rpg_lore.codex.uncollected": "???",
+  "rpg_lore.codex.duplicate_prevention.on": "Blocare duplicate: ACTIVAT",
+  "rpg_lore.codex.duplicate_prevention.off": "Blocare duplicate: DEZACTIVAT",
+  "rpg_lore.codex.copy": "Copiaz\u0103",
+  "rpg_lore.codex.read": "Cite\u0219te",
+  "rpg_lore.codex.tooltip.collected": "Colectate: %d / %d",
+  "rpg_lore.codex.tooltip.duplicates_blocked": "Colectarea duplicatelor este blocat\u0103",
+  "rpg_lore.codex.no_physical_copy": "Ai nevoie de o copie fizic\u0103 a acestei c\u0103r\u021bi"
+}

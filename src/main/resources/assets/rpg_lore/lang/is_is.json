@@ -1,0 +1,15 @@
+{
+  "item.rpg_lore.lore_book": "S\u00f6gub\u00f3k",
+  "item.rpg_lore.lore_codex": "S\u00f6gukoddi",
+  "rpg_lore.codex.title": "S\u00f6gukoddi",
+  "rpg_lore.codex.collected": "N\u00fd f\u00e6rsla: %s",
+  "rpg_lore.codex.counter": "Safna\u00f0: %d / %d",
+  "rpg_lore.codex.uncollected": "???",
+  "rpg_lore.codex.duplicate_prevention.on": "Tvitekjuv\u00f6rn: VIRK",
+  "rpg_lore.codex.duplicate_prevention.off": "Tvitekjuv\u00f6rn: \u00d3VIRK",
+  "rpg_lore.codex.copy": "Afrita",
+  "rpg_lore.codex.read": "Lesa",
+  "rpg_lore.codex.tooltip.collected": "Safna\u00f0: %d / %d",
+  "rpg_lore.codex.tooltip.duplicates_blocked": "Tví­tekjum loka\u00f0",
+  "rpg_lore.codex.no_physical_copy": "\u00de\u00fa \u00fearft efnislegt eintak af \u00feessari b\u00f3k"
+}

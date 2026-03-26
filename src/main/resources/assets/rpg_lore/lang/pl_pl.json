@@ -1,0 +1,15 @@
+{
+  "item.rpg_lore.lore_book": "Ksi\u0119ga Opowie\u015bci",
+  "item.rpg_lore.lore_codex": "Kodeks Opowie\u015bci",
+  "rpg_lore.codex.title": "Kodeks Opowie\u015bci",
+  "rpg_lore.codex.collected": "Nowy wpis: %s",
+  "rpg_lore.codex.counter": "Zebrano: %d / %d",
+  "rpg_lore.codex.uncollected": "???",
+  "rpg_lore.codex.duplicate_prevention.on": "Blokada duplikat\u00f3w: W\u0141\u0104CZONA",
+  "rpg_lore.codex.duplicate_prevention.off": "Blokada duplikat\u00f3w: WY\u0141\u0104CZONA",
+  "rpg_lore.codex.copy": "Kopiuj",
+  "rpg_lore.codex.read": "Czytaj",
+  "rpg_lore.codex.tooltip.collected": "Zebrano: %d / %d",
+  "rpg_lore.codex.tooltip.duplicates_blocked": "Blokowanie podnoszenia duplikat\u00f3w",
+  "rpg_lore.codex.no_physical_copy": "Potrzebujesz fizycznej kopii tej ksi\u0105\u017cki"
+}

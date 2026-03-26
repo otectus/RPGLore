@@ -3,7 +3,7 @@ package com.rpglore.loot;
 import com.mojang.serialization.Codec;
 import com.mojang.serialization.codecs.RecordCodecBuilder;
 import com.rpglore.RpgLoreMod;
-import com.rpglore.config.BooksConfigLoader;
+import com.rpglore.config.LoreBookRegistry;
 import com.rpglore.config.ServerConfig;
 import com.rpglore.lore.DropConditionContext;
 import com.rpglore.lore.LoreBookDefinition;
@@ -73,54 +73,82 @@ public class LoreBookLootModifier extends LootModifier {
         DropConditionContext ctx = DropConditionContext.from(context, victim, player);
 
         // Get all matching book definitions
-        List<LoreBookDefinition> matching = BooksConfigLoader.getMatchingBooks(ctx);
+        List<LoreBookDefinition> matching = LoreBookRegistry.getMatchingBooks(ctx);
         if (matching.isEmpty()) return generatedLoot;
 
         // Calculate effective global drop chance
-        double chance = ServerConfig.GLOBAL_DROP_CHANCE.get();
+        double globalChance = ServerConfig.GLOBAL_DROP_CHANCE.get();
         if (ServerConfig.LOOT_SCALING.get() && player != null) {
             int lootingLevel = EnchantmentHelper.getItemEnchantmentLevel(Enchantments.MOB_LOOTING,
                     player.getMainHandItem());
-            chance += lootingLevel * 0.01;
+            globalChance += lootingLevel * 0.01;
         }
 
-        // Roll global drop chance
         RandomSource random = context.getRandom();
-        if (random.nextDouble() >= chance) return generatedLoot;
-
-        // Select books (by weight or uniform), capped at maxBooksPerKill
         int maxBooks = ServerConfig.MAX_BOOKS_PER_KILL.get();
         boolean useWeights = ServerConfig.ENABLE_PER_BOOK_WEIGHTS.get();
-        List<LoreBookDefinition> selected = selectBooks(matching, random, maxBooks, useWeights);
 
-        // Create ItemStacks and add to loot
-        for (LoreBookDefinition def : selected) {
-            // Per-book base_chance override
+        // H1: Split candidates into those with and without base_chance overrides.
+        // Books with base_chance use their own chance exclusively (truly overrides global).
+        // Books without base_chance use the global chance.
+        List<LoreBookDefinition> withOverride = new ArrayList<>();
+        List<LoreBookDefinition> withoutOverride = new ArrayList<>();
+        for (LoreBookDefinition def : matching) {
             if (def.dropCondition().baseChance() != null) {
-                if (random.nextDouble() >= def.dropCondition().baseChance()) continue;
+                withOverride.add(def);
+            } else {
+                withoutOverride.add(def);
             }
+        }
 
-            // Per-player copy limit
-            if (player != null && def.dropCondition().maxCopiesPerPlayer() >= 0) {
-                if (!BooksConfigLoader.canPlayerReceive(player.getUUID(), def.id(),
-                        def.dropCondition().maxCopiesPerPlayer())) {
-                    continue;
-                }
-                BooksConfigLoader.recordPlayerReceived(player.getUUID(), def.id());
+        // Process books without base_chance override: roll global chance, then select
+        if (!withoutOverride.isEmpty() && random.nextDouble() < globalChance) {
+            List<LoreBookDefinition> selected = selectBooks(withoutOverride, random, maxBooks, useWeights);
+            for (LoreBookDefinition def : selected) {
+                addBookToLoot(def, player, generatedLoot, victim);
             }
+        }
 
-            RpgLoreMod.LOGGER.debug("Dropping lore book '{}' from {}", def.id(),
-                    victim.getType().getDescriptionId());
-            generatedLoot.add(LoreBookItem.createStack(def));
+        // Process books with base_chance override: each book rolls its own chance independently
+        for (LoreBookDefinition def : withOverride) {
+            if (random.nextDouble() < def.dropCondition().baseChance()) {
+                addBookToLoot(def, player, generatedLoot, victim);
+            }
         }
 
         return generatedLoot;
     }
 
+    /**
+     * Validates per-player copy limits and adds a book to the loot list.
+     * H2: Recording happens AFTER the stack is added to loot.
+     */
+    private void addBookToLoot(LoreBookDefinition def, Player player,
+                               ObjectArrayList<ItemStack> generatedLoot, LivingEntity victim) {
+        // Per-player copy limit check
+        if (player != null && def.dropCondition().maxCopiesPerPlayer() >= 0) {
+            if (!LoreBookRegistry.canPlayerReceive(player.getUUID(), def.id(),
+                    def.dropCondition().maxCopiesPerPlayer())) {
+                return;
+            }
+        }
+
+        RpgLoreMod.LOGGER.debug("Dropping lore book '{}' from {}", def.id(),
+                victim.getType().getDescriptionId());
+
+        generatedLoot.add(LoreBookItem.createStack(def));
+
+        // H2: Record AFTER successful addition to loot
+        if (player != null && def.dropCondition().maxCopiesPerPlayer() >= 0) {
+            LoreBookRegistry.recordPlayerReceived(player.getUUID(), def.id());
+        }
+    }
+
+    // M7: Short-circuit when all candidates fit, regardless of useWeights
     private static List<LoreBookDefinition> selectBooks(
             List<LoreBookDefinition> candidates, RandomSource random, int max, boolean useWeights) {
 
-        if (candidates.size() <= max && !useWeights) {
+        if (candidates.size() <= max) {
             return candidates;
         }
 

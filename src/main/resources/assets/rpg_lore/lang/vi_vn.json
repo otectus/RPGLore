@@ -1,0 +1,15 @@
+{
+  "item.rpg_lore.lore_book": "S\u00e1ch Truy\u1ec1n Thuy\u1ebft",
+  "item.rpg_lore.lore_codex": "B\u1ed9 S\u01b0u T\u1eadp Truy\u1ec1n Thuy\u1ebft",
+  "rpg_lore.codex.title": "B\u1ed9 S\u01b0u T\u1eadp Truy\u1ec1n Thuy\u1ebft",
+  "rpg_lore.codex.collected": "M\u1ee5c m\u1edbi: %s",
+  "rpg_lore.codex.counter": "\u0110\u00e3 thu th\u1eadp: %d / %d",
+  "rpg_lore.codex.uncollected": "???",
+  "rpg_lore.codex.duplicate_prevention.on": "Ch\u1eb7n tr\u00f9ng l\u1eb7p: B\u1eacT",
+  "rpg_lore.codex.duplicate_prevention.off": "Ch\u1eb7n tr\u00f9ng l\u1eb7p: T\u1eaeT",
+  "rpg_lore.codex.copy": "Sao ch\u00e9p",
+  "rpg_lore.codex.read": "\u0110\u1ecdc",
+  "rpg_lore.codex.tooltip.collected": "\u0110\u00e3 thu th\u1eadp: %d / %d",
+  "rpg_lore.codex.tooltip.duplicates_blocked": "\u0110ang ch\u1eb7n nh\u1eb7t v\u1eadt tr\u00f9ng l\u1eb7p",
+  "rpg_lore.codex.no_physical_copy": "B\u1ea1n c\u1ea7n m\u1ed9t b\u1ea3n sao v\u1eadt l\u00fd c\u1ee7a cu\u1ed1n s\u00e1ch n\u00e0y"
+}

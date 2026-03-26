@@ -1,0 +1,15 @@
+{
+  "item.rpg_lore.lore_book": "Aklat ng Alamat",
+  "item.rpg_lore.lore_codex": "Kodeks ng Alamat",
+  "rpg_lore.codex.title": "Kodeks ng Alamat",
+  "rpg_lore.codex.collected": "Bagong entry: %s",
+  "rpg_lore.codex.counter": "Nakolekta: %d / %d",
+  "rpg_lore.codex.uncollected": "???",
+  "rpg_lore.codex.duplicate_prevention.on": "Pag-iwas sa duplikado: BUKAS",
+  "rpg_lore.codex.duplicate_prevention.off": "Pag-iwas sa duplikado: SARADO",
+  "rpg_lore.codex.copy": "Kopyahin",
+  "rpg_lore.codex.read": "Basahin",
+  "rpg_lore.codex.tooltip.collected": "Nakolekta: %d / %d",
+  "rpg_lore.codex.tooltip.duplicates_blocked": "Hinaharangan ang pagpulot ng duplikado",
+  "rpg_lore.codex.no_physical_copy": "Kailangan mo ng pisikal na kopya ng aklat na ito"
+}

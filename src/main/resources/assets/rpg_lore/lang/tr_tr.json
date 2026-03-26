@@ -1,0 +1,15 @@
+{
+  "item.rpg_lore.lore_book": "Efsane Kitab\u0131",
+  "item.rpg_lore.lore_codex": "Efsane Kodeksi",
+  "rpg_lore.codex.title": "Efsane Kodeksi",
+  "rpg_lore.codex.collected": "Yeni giri\u015f: %s",
+  "rpg_lore.codex.counter": "Toplanan: %d / %d",
+  "rpg_lore.codex.uncollected": "???",
+  "rpg_lore.codex.duplicate_prevention.on": "Kopya engelleme: A\u00c7IK",
+  "rpg_lore.codex.duplicate_prevention.off": "Kopya engelleme: KAPALI",
+  "rpg_lore.codex.copy": "Kopyala",
+  "rpg_lore.codex.read": "Oku",
+  "rpg_lore.codex.tooltip.collected": "Toplanan: %d / %d",
+  "rpg_lore.codex.tooltip.duplicates_blocked": "Kopya toplama engelleniyor",
+  "rpg_lore.codex.no_physical_copy": "Bu kitab\u0131n fiziksel bir kopyas\u0131na ihtiyac\u0131n\u0131z var"
+}

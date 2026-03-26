@@ -1,0 +1,15 @@
+{
+  "item.rpg_lore.lore_book": "Buku Legenda",
+  "item.rpg_lore.lore_codex": "Kodeks Legenda",
+  "rpg_lore.codex.title": "Kodeks Legenda",
+  "rpg_lore.codex.collected": "Entri baru: %s",
+  "rpg_lore.codex.counter": "Terkumpul: %d / %d",
+  "rpg_lore.codex.uncollected": "???",
+  "rpg_lore.codex.duplicate_prevention.on": "Blokir duplikat: AKTIF",
+  "rpg_lore.codex.duplicate_prevention.off": "Blokir duplikat: NONAKTIF",
+  "rpg_lore.codex.copy": "Salin",
+  "rpg_lore.codex.read": "Baca",
+  "rpg_lore.codex.tooltip.collected": "Terkumpul: %d / %d",
+  "rpg_lore.codex.tooltip.duplicates_blocked": "Pengambilan duplikat diblokir",
+  "rpg_lore.codex.no_physical_copy": "Anda memerlukan salinan fisik buku ini"
+}

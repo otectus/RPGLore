@@ -1,5 +1,6 @@
 package com.rpglore.lore;
 
+import com.rpglore.RpgLoreMod;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.Holder;
 import net.minecraft.core.registries.Registries;
@@ -67,9 +68,15 @@ public record DropConditionContext(
         boolean isThundering = level.isThundering();
         boolean wasPlayerKill = killer != null;
 
+        if (biomeId == null) {
+            RpgLoreMod.LOGGER.warn("Could not determine biome at {} in {}, defaulting to minecraft:plains",
+                    pos, dimension);
+            biomeId = new ResourceLocation("minecraft", "plains");
+        }
+
         return new DropConditionContext(
                 victimType, victimEntityTags, killer,
-                dimension, biomeId != null ? biomeId : new ResourceLocation("minecraft", "plains"),
+                dimension, biomeId,
                 biomeTags, y, dayTime, isDay,
                 isRaining, isThundering, wasPlayerKill
         );

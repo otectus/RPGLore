@@ -1,0 +1,15 @@
+{
+  "item.rpg_lore.lore_book": "Sagabog",
+  "item.rpg_lore.lore_codex": "Sagakodeks",
+  "rpg_lore.codex.title": "Sagakodeks",
+  "rpg_lore.codex.collected": "Ny post: %s",
+  "rpg_lore.codex.counter": "Indsamlet: %d / %d",
+  "rpg_lore.codex.uncollected": "???",
+  "rpg_lore.codex.duplicate_prevention.on": "Dubletblokering: TIL",
+  "rpg_lore.codex.duplicate_prevention.off": "Dubletblokering: FRA",
+  "rpg_lore.codex.copy": "Kopi\u00e9r",
+  "rpg_lore.codex.read": "L\u00e6s",
+  "rpg_lore.codex.tooltip.collected": "Indsamlet: %d / %d",
+  "rpg_lore.codex.tooltip.duplicates_blocked": "Blokerer opsamling af dubletter",
+  "rpg_lore.codex.no_physical_copy": "Du skal bruge en fysisk kopi af denne bog"
+}

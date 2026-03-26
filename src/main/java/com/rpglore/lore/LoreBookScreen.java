@@ -37,7 +37,10 @@ public class LoreBookScreen extends BookViewScreen {
     private static final ResourceLocation LORE_BOOK_TEXTURE =
             new ResourceLocation("rpg_lore", "textures/gui/book.png");
 
-    // --- BookViewScreen constants (from decompiled source) ---
+    // These constants are sourced from BookViewScreen.java (1.20.1 official mappings).
+    // They are private in vanilla and cannot be referenced directly.
+    // If porting to a new Minecraft version, verify these values against the
+    // decompiled BookViewScreen source.
     private static final int TEXT_WIDTH = 114;
     private static final int TEXT_HEIGHT = 128;
     private static final int IMAGE_WIDTH = 192;
@@ -57,6 +60,8 @@ public class LoreBookScreen extends BookViewScreen {
 
     // Shadow of the private super.currentPage field, kept in sync via
     // overrides of pageForward(), pageBack(), and forcePage().
+    // FRAGILE: if Mojang adds new navigation methods that modify currentPage
+    // in a future version, this shadow will desync. Verify on version upgrades.
     private int trackedPage;
 
     // Local page cache (mirrors vanilla's private cache for content pages)

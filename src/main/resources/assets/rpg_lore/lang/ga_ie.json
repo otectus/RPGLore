@@ -1,0 +1,15 @@
+{
+  "item.rpg_lore.lore_book": "Leabhar Seanchais",
+  "item.rpg_lore.lore_codex": "C\u00f3dacs Seanchais",
+  "rpg_lore.codex.title": "C\u00f3dacs Seanchais",
+  "rpg_lore.codex.collected": "Iontráil nua: %s",
+  "rpg_lore.codex.counter": "Baili\u00fathe: %d / %d",
+  "rpg_lore.codex.uncollected": "???",
+  "rpg_lore.codex.duplicate_prevention.on": "Cosc ar dh\u00fableach: AR SI\u00daL",
+  "rpg_lore.codex.duplicate_prevention.off": "Cosc ar dh\u00fableach: AS",
+  "rpg_lore.codex.copy": "C\u00f3ipe\u00e1il",
+  "rpg_lore.codex.read": "L\u00e9igh",
+  "rpg_lore.codex.tooltip.collected": "Baili\u00fathe: %d / %d",
+  "rpg_lore.codex.tooltip.duplicates_blocked": "D\u00fableach\u00fa \u00e1 gcur ar cosc",
+  "rpg_lore.codex.no_physical_copy": "T\u00e1 c\u00f3ip fhisici\u00fail den leabhar seo ag teast\u00e1il uait"
+}

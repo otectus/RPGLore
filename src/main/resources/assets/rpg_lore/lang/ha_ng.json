@@ -1,0 +1,15 @@
+{
+  "item.rpg_lore.lore_book": "Littafin Tarihi",
+  "item.rpg_lore.lore_codex": "Kundin Tarihi",
+  "rpg_lore.codex.title": "Kundin Tarihi",
+  "rpg_lore.codex.collected": "Sabon shigarwa: %s",
+  "rpg_lore.codex.counter": "An tattara: %d / %d",
+  "rpg_lore.codex.uncollected": "???",
+  "rpg_lore.codex.duplicate_prevention.on": "Hana kwafi: A KUNNA",
+  "rpg_lore.codex.duplicate_prevention.off": "Hana kwafi: A KASHE",
+  "rpg_lore.codex.copy": "Kwafa",
+  "rpg_lore.codex.read": "Karanta",
+  "rpg_lore.codex.tooltip.collected": "An tattara: %d / %d",
+  "rpg_lore.codex.tooltip.duplicates_blocked": "Ana hana daukar kwafi",
+  "rpg_lore.codex.no_physical_copy": "Kana bukatar kwafin littafin nan na zahiri"
+}

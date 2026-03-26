@@ -1,0 +1,15 @@
+{
+  "item.rpg_lore.lore_book": "Knjiga legend",
+  "item.rpg_lore.lore_codex": "Kodeks legend",
+  "rpg_lore.codex.title": "Kodeks legend",
+  "rpg_lore.codex.collected": "Nov vnos: %s",
+  "rpg_lore.codex.counter": "Zbranih: %d / %d",
+  "rpg_lore.codex.uncollected": "???",
+  "rpg_lore.codex.duplicate_prevention.on": "Blokiranje dvojnikov: VKLOPLJENO",
+  "rpg_lore.codex.duplicate_prevention.off": "Blokiranje dvojnikov: IZKLOPLJENO",
+  "rpg_lore.codex.copy": "Kopiraj",
+  "rpg_lore.codex.read": "Beri",
+  "rpg_lore.codex.tooltip.collected": "Zbranih: %d / %d",
+  "rpg_lore.codex.tooltip.duplicates_blocked": "Pobiranje dvojnikov je blokirano",
+  "rpg_lore.codex.no_physical_copy": "Potrebujete fizi\u010dno kopijo te knjige"
+}

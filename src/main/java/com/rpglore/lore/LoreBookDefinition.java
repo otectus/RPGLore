@@ -15,5 +15,8 @@ public record LoreBookDefinition(
         @Nullable String authorColor,
         @Nullable String description,
         @Nullable String descriptionColor,
-        boolean hideGeneration
+        boolean hideGeneration,
+        boolean showGlint,
+        @Nullable String category,
+        boolean codexExclude
 ) {}

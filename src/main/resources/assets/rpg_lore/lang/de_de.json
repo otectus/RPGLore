@@ -1,0 +1,15 @@
+{
+  "item.rpg_lore.lore_book": "Sagenbuch",
+  "item.rpg_lore.lore_codex": "Sagencodex",
+  "rpg_lore.codex.title": "Sagencodex",
+  "rpg_lore.codex.collected": "Neuer Eintrag: %s",
+  "rpg_lore.codex.counter": "Gesammelt: %d / %d",
+  "rpg_lore.codex.uncollected": "???",
+  "rpg_lore.codex.duplicate_prevention.on": "Duplikatschutz: AN",
+  "rpg_lore.codex.duplicate_prevention.off": "Duplikatschutz: AUS",
+  "rpg_lore.codex.copy": "Kopieren",
+  "rpg_lore.codex.read": "Lesen",
+  "rpg_lore.codex.tooltip.collected": "Gesammelt: %d / %d",
+  "rpg_lore.codex.tooltip.duplicates_blocked": "Duplikate werden blockiert",
+  "rpg_lore.codex.no_physical_copy": "Du brauchst ein physisches Exemplar dieses Buches"
+}

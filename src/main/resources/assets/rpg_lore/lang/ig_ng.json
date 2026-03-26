@@ -1,0 +1,15 @@
+{
+  "item.rpg_lore.lore_book": "Akw\u1ee5kw\u1ecd Akuk\u1ecd",
+  "item.rpg_lore.lore_codex": "Kodeks\u1ecb Akuk\u1ecd",
+  "rpg_lore.codex.title": "Kodeks\u1ecb Akuk\u1ecd",
+  "rpg_lore.codex.collected": "Ntinye \u1ecdh\u1ee5r\u1ee5: %s",
+  "rpg_lore.codex.counter": "Anakp\u1ecdtara: %d / %d",
+  "rpg_lore.codex.uncollected": "???",
+  "rpg_lore.codex.duplicate_prevention.on": "Mgbochi okpuru: N\u1eccGIDER\u1ec8",
+  "rpg_lore.codex.duplicate_prevention.off": "Mgbochi okpuru: GBANY\u1ee4\u1ee4",
+  "rpg_lore.codex.copy": "Dep\u1ee5ta",
+  "rpg_lore.codex.read": "G\u1ee5\u1ecd",
+  "rpg_lore.codex.tooltip.collected": "Anakp\u1ecdtara: %d / %d",
+  "rpg_lore.codex.tooltip.duplicates_blocked": "A na-egbochi \u1ecbch\u1ecbkp\u1ee5 okpuru",
+  "rpg_lore.codex.no_physical_copy": "\u1eca ch\u1ecdr\u1ecd otu akw\u1ee5kw\u1ecd a n'aka"
+}

@@ -1,0 +1,15 @@
+{
+  "item.rpg_lore.lore_book": "Llyfr Chwedlau",
+  "item.rpg_lore.lore_codex": "Codecs Chwedlau",
+  "rpg_lore.codex.title": "Codecs Chwedlau",
+  "rpg_lore.codex.collected": "Cofnod newydd: %s",
+  "rpg_lore.codex.counter": "Wedi\u2019u casglu: %d / %d",
+  "rpg_lore.codex.uncollected": "???",
+  "rpg_lore.codex.duplicate_prevention.on": "Atal dyblygiadau: YMLAEN",
+  "rpg_lore.codex.duplicate_prevention.off": "Atal dyblygiadau: I FFWRDD",
+  "rpg_lore.codex.copy": "Cop\u00efo",
+  "rpg_lore.codex.read": "Darllen",
+  "rpg_lore.codex.tooltip.collected": "Wedi\u2019u casglu: %d / %d",
+  "rpg_lore.codex.tooltip.duplicates_blocked": "Rhwystro codi dyblygiadau",
+  "rpg_lore.codex.no_physical_copy": "Mae angen copi ffisegol o\u2019r llyfr hwn arnoch"
+}
