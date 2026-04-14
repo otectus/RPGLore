@@ -34,10 +34,15 @@ public class LoreBookItem extends WrittenBookItem {
     @Override
     public boolean isFoil(ItemStack stack) {
         CompoundTag tag = stack.getTag();
-        if (tag != null && tag.contains("lore_show_glint")) {
+        if (tag == null) {
+            // No NBT (e.g. /give rpg_lore:lore_book with no nbt arg) → no glint,
+            // otherwise blank template books shimmer.
+            return false;
+        }
+        if (tag.contains("lore_show_glint")) {
             return tag.getBoolean("lore_show_glint");
         }
-        return true; // default: glint enabled
+        return true; // default for fully-formed lore books: glint enabled
     }
 
     /**

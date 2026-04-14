@@ -7,12 +7,13 @@ import com.rpglore.network.ServerboundCodexToggleDuplicatePacket;
 import net.minecraft.ChatFormatting;
 import net.minecraft.client.gui.GuiGraphics;
 import net.minecraft.client.gui.components.Button;
-import net.minecraft.client.gui.components.EditBox;
+import net.minecraft.client.gui.components.Tooltip;
 import net.minecraft.client.gui.screens.Screen;
 import net.minecraft.network.chat.Component;
 import net.minecraft.network.chat.Style;
 import net.minecraft.network.chat.TextColor;
 import net.minecraft.resources.ResourceLocation;
+import net.minecraft.util.FormattedCharSequence;
 import net.minecraftforge.api.distmarker.Dist;
 import net.minecraftforge.api.distmarker.OnlyIn;
 
@@ -26,27 +27,65 @@ public class LoreCodexScreen extends Screen {
     private static final ResourceLocation CODEX_TEXTURE =
             new ResourceLocation("rpg_lore", "textures/gui/codex.png");
 
-    private static final int GUI_WIDTH = 256;
-    private static final int GUI_HEIGHT = 200;
-    private static final int ENTRIES_PER_PAGE = 8;
-    private static final int ENTRY_HEIGHT = 16;
-    private static final int LIST_START_Y = 48;
-    private static final int LIST_X_OFFSET = 20;
-    private static final int LIST_WIDTH = 216;
+    // Book graphic region within the 256x256 texture atlas
+    private static final int BOOK_U = 20;
+    private static final int BOOK_V = 1;
+    private static final int BOOK_WIDTH = 146;
+    private static final int BOOK_HEIGHT = 180;
+
+    // Parchment (text area) offset relative to book draw position
+    private static final int PARCHMENT_X = 6;
+    private static final int PARCHMENT_Y = 7;
+    private static final int PARCHMENT_WIDTH = 132;
+    private static final int PARCHMENT_HEIGHT = 165;
+
+    // Text area with inner padding
+    private static final int TEXT_PADDING = 6;
+    private static final int TEXT_WIDTH = PARCHMENT_WIDTH - TEXT_PADDING * 2;
+
+    // Page navigation button sprite UVs in the texture
+    private static final int BTN_PREV_NORMAL_U = 3;
+    private static final int BTN_PREV_NORMAL_V = 194;
+    private static final int BTN_NEXT_NORMAL_U = 3;
+    private static final int BTN_NEXT_NORMAL_V = 207;
+    private static final int BTN_PREV_HOVER_U = 26;
+    private static final int BTN_PREV_HOVER_V = 194;
+    private static final int BTN_NEXT_HOVER_U = 26;
+    private static final int BTN_NEXT_HOVER_V = 207;
+    private static final int BTN_SPRITE_W = 18;
+    private static final int BTN_SPRITE_H = 10;
+
+    // Entry layout
+    private static final int ENTRIES_PER_PAGE = 7;
+    private static final int ENTRY_HEIGHT = 14;
+
+    // Colors for parchment readability
+    private static final int COLOR_TITLE = 0x3B2507;
+    private static final int COLOR_TEXT = 0x4A3520;
+    private static final int COLOR_SUBTLE = 0x7A6A58;
+    private static final int COLOR_COLLECTED = 0x2D6B1A;
+    private static final int COLOR_UNCOLLECTED = 0x8A7A68;
+    private static final int COLOR_LINK = 0x1A4A6B;
+    private static final int COLOR_LINK_HOVER = 0x0A2A4B;
+    private static final int COLOR_COPY = 0x6B4A1A;
+    private static final int COLOR_COPY_HOVER = 0x4B2A0A;
 
     private CodexScreenData data;
     private List<CodexBookEntry> filteredEntries;
     private int currentPage = 0;
     private int totalPages = 1;
-    private String searchFilter = "";
 
-    private Button prevPageButton;
-    private Button nextPageButton;
     private Button toggleButton;
-    private EditBox searchBox;
+
+    // Computed layout positions (set in init)
+    private int guiLeft, guiTop;
+    private int textLeft, textTop;
 
     // Clickable entry regions for hit-testing
     private final List<EntryRegion> entryRegions = new ArrayList<>();
+
+    // Page nav button regions (rendered manually from texture sprites)
+    private int prevBtnX, prevBtnY, nextBtnX, nextBtnY;
 
     public LoreCodexScreen(CodexScreenData data) {
         super(Component.translatable("rpg_lore.codex.title"));
@@ -57,125 +96,87 @@ public class LoreCodexScreen extends Screen {
     public void refreshData(CodexScreenData data) {
         this.data = data;
         applyFilter();
-        updateButtons();
-    }
-
-    @Override
-    protected void init() {
-        super.init();
-        int guiLeft = (this.width - GUI_WIDTH) / 2;
-        int guiTop = (this.height - GUI_HEIGHT) / 2;
-
-        // Search box
-        searchBox = new EditBox(this.font, guiLeft + LIST_X_OFFSET, guiTop + 32, LIST_WIDTH - 60, 12,
-                Component.literal("Search"));
-        searchBox.setMaxLength(50);
-        searchBox.setBordered(true);
-        searchBox.setResponder(text -> {
-            searchFilter = text.toLowerCase();
-            currentPage = 0;
-            applyFilter();
-        });
-        addWidget(searchBox);
-
-        // Toggle duplicate prevention button
-        if (data.allowDuplicatePrevention) {
-            toggleButton = Button.builder(getToggleLabel(), btn -> {
-                ModNetwork.sendToServer(new ServerboundCodexToggleDuplicatePacket());
-            }).bounds(guiLeft + GUI_WIDTH - 68, guiTop + 4, 60, 14).build();
-            addRenderableWidget(toggleButton);
-        }
-
-        // Page navigation
-        prevPageButton = Button.builder(Component.literal("<"), btn -> {
-            if (currentPage > 0) {
-                currentPage--;
-                updateButtons();
-            }
-        }).bounds(guiLeft + GUI_WIDTH / 2 - 50, guiTop + GUI_HEIGHT - 20, 20, 16).build();
-        addRenderableWidget(prevPageButton);
-
-        nextPageButton = Button.builder(Component.literal(">"), btn -> {
-            if (currentPage < totalPages - 1) {
-                currentPage++;
-                updateButtons();
-            }
-        }).bounds(guiLeft + GUI_WIDTH / 2 + 30, guiTop + GUI_HEIGHT - 20, 20, 16).build();
-        addRenderableWidget(nextPageButton);
-
-        applyFilter();
-        updateButtons();
-    }
-
-    private void applyFilter() {
-        filteredEntries = new ArrayList<>();
-        for (CodexBookEntry entry : data.catalog) {
-            if (searchFilter.isEmpty()) {
-                filteredEntries.add(entry);
-            } else {
-                String displayName = entry.collected() || data.revealUncollectedNames
-                        ? entry.title().toLowerCase() : "???";
-                if (displayName.contains(searchFilter) ||
-                        (entry.category() != null && entry.category().toLowerCase().contains(searchFilter))) {
-                    filteredEntries.add(entry);
-                }
-            }
-        }
-        totalPages = Math.max(1, (int) Math.ceil((double) filteredEntries.size() / ENTRIES_PER_PAGE));
-        if (currentPage >= totalPages) currentPage = totalPages - 1;
-    }
-
-    private void updateButtons() {
-        prevPageButton.active = currentPage > 0;
-        nextPageButton.active = currentPage < totalPages - 1;
         if (toggleButton != null) {
             toggleButton.setMessage(getToggleLabel());
         }
     }
 
+    @Override
+    protected void init() {
+        super.init();
+
+        guiLeft = (this.width - BOOK_WIDTH) / 2;
+        guiTop = (this.height - BOOK_HEIGHT) / 2;
+        textLeft = guiLeft + PARCHMENT_X + TEXT_PADDING;
+        textTop = guiTop + PARCHMENT_Y + TEXT_PADDING;
+
+        // Toggle duplicate prevention button (small square, top-right of parchment)
+        if (data.allowDuplicatePrevention) {
+            int toggleSize = 12;
+            int toggleX = guiLeft + PARCHMENT_X + PARCHMENT_WIDTH - toggleSize - TEXT_PADDING;
+            int toggleY = textTop;
+            toggleButton = Button.builder(getToggleLabel(), btn -> {
+                ModNetwork.sendToServer(new ServerboundCodexToggleDuplicatePacket());
+            }).bounds(toggleX, toggleY, toggleSize, toggleSize)
+              .tooltip(Tooltip.create(
+                      Component.literal("Pick-Up").withStyle(ChatFormatting.WHITE),
+                      Component.literal("Enable/Disable Automatic Pick-Up")))
+              .build();
+            addRenderableWidget(toggleButton);
+        }
+
+        // Page nav button positions (drawn manually as texture sprites, hit-tested in mouseClicked)
+        int navY = guiTop + PARCHMENT_Y + PARCHMENT_HEIGHT - BTN_SPRITE_H - 2;
+        int parchCenterX = guiLeft + PARCHMENT_X + PARCHMENT_WIDTH / 2;
+        prevBtnX = parchCenterX - BTN_SPRITE_W - 20;
+        prevBtnY = navY;
+        nextBtnX = parchCenterX + 20;
+        nextBtnY = navY;
+
+        applyFilter();
+    }
+
+    private void applyFilter() {
+        filteredEntries = new ArrayList<>(data.catalog);
+        totalPages = Math.max(1, (int) Math.ceil((double) filteredEntries.size() / ENTRIES_PER_PAGE));
+        if (currentPage >= totalPages) currentPage = totalPages - 1;
+    }
+
     private Component getToggleLabel() {
         return data.preventDuplicates
-                ? Component.literal("Unlocked").withStyle(ChatFormatting.RED)
-                : Component.literal("Locked").withStyle(ChatFormatting.GREEN);
+                ? Component.literal("\u2716").withStyle(ChatFormatting.DARK_RED)
+                : Component.literal("\u2714").withStyle(ChatFormatting.DARK_GREEN);
     }
 
     @Override
     public void render(GuiGraphics graphics, int mouseX, int mouseY, float partialTick) {
         this.renderBackground(graphics);
 
-        int guiLeft = (this.width - GUI_WIDTH) / 2;
-        int guiTop = (this.height - GUI_HEIGHT) / 2;
+        // Draw the codex book texture
+        graphics.blit(CODEX_TEXTURE, guiLeft, guiTop, BOOK_U, BOOK_V, BOOK_WIDTH, BOOK_HEIGHT);
 
-        // Background
-        graphics.fill(guiLeft, guiTop, guiLeft + GUI_WIDTH, guiTop + GUI_HEIGHT, 0xCC1A0A2E);
-        // Border
-        graphics.fill(guiLeft, guiTop, guiLeft + GUI_WIDTH, guiTop + 1, 0xFF6B3FA0);
-        graphics.fill(guiLeft, guiTop + GUI_HEIGHT - 1, guiLeft + GUI_WIDTH, guiTop + GUI_HEIGHT, 0xFF6B3FA0);
-        graphics.fill(guiLeft, guiTop, guiLeft + 1, guiTop + GUI_HEIGHT, 0xFF6B3FA0);
-        graphics.fill(guiLeft + GUI_WIDTH - 1, guiTop, guiLeft + GUI_WIDTH, guiTop + GUI_HEIGHT, 0xFF6B3FA0);
+        int y = textTop;
 
         // Title
-        Component title = Component.literal("LORE CODEX").withStyle(
-                Style.EMPTY.withBold(true).withColor(TextColor.fromRgb(0xD4AF37)));
+        Component title = Component.literal("Lore Codex").withStyle(
+                Style.EMPTY.withBold(true).withColor(TextColor.fromRgb(COLOR_TITLE)));
         int titleWidth = this.font.width(title);
-        graphics.drawString(this.font, title, guiLeft + (GUI_WIDTH - titleWidth) / 2, guiTop + 6, 0xD4AF37, true);
+        int parchCenterX = guiLeft + PARCHMENT_X + PARCHMENT_WIDTH / 2;
+        graphics.drawString(this.font, title, parchCenterX - titleWidth / 2, y, COLOR_TITLE, false);
+        y += 12;
 
         // Collection counter
-        Component counter = Component.literal("Collected: " + data.collectedCount + " / " + data.totalCount)
-                .withStyle(ChatFormatting.GRAY);
-        graphics.drawString(this.font, counter, guiLeft + LIST_X_OFFSET, guiTop + 20, 0xAAAAAA, false);
+        Component counter = Component.literal(data.collectedCount + " / " + data.totalCount)
+                .withStyle(Style.EMPTY.withColor(TextColor.fromRgb(COLOR_SUBTLE)));
+        int counterWidth = this.font.width(counter);
+        graphics.drawString(this.font, counter, parchCenterX - counterWidth / 2, y, COLOR_SUBTLE, false);
+        y += 11;
 
-        // Duplicate prevention indicator
-        if (data.preventDuplicates) {
-            Component indicator = Component.literal("Blocking duplicates")
-                    .withStyle(ChatFormatting.DARK_AQUA, ChatFormatting.ITALIC);
-            int indicatorWidth = this.font.width(indicator);
-            graphics.drawString(this.font, indicator, guiLeft + GUI_WIDTH - indicatorWidth - 8, guiTop + 20,
-                    0x55AAAA, false);
-        }
-
-        // Search box
-        searchBox.render(graphics, mouseX, mouseY, partialTick);
+        // Separator line
+        int sepLeft = textLeft + 4;
+        int sepRight = textLeft + TEXT_WIDTH - 4;
+        graphics.fill(sepLeft, y, sepRight, y + 1, 0x40000000);
+        y += 4;
 
         // Book entries
         entryRegions.clear();
@@ -184,95 +185,149 @@ public class LoreCodexScreen extends Screen {
 
         for (int i = startIdx; i < endIdx; i++) {
             CodexBookEntry entry = filteredEntries.get(i);
-            int entryY = guiTop + LIST_START_Y + (i - startIdx) * ENTRY_HEIGHT;
-
-            renderEntry(graphics, guiLeft, entryY, entry, mouseX, mouseY);
+            renderEntry(graphics, textLeft, y, entry, mouseX, mouseY);
+            y += ENTRY_HEIGHT;
         }
 
-        // Page indicator
-        Component pageIndicator = Component.literal("Page " + (currentPage + 1) + " / " + totalPages)
-                .withStyle(ChatFormatting.GRAY);
-        int pageWidth = this.font.width(pageIndicator);
-        graphics.drawString(this.font, pageIndicator,
-                guiLeft + (GUI_WIDTH - pageWidth) / 2, guiTop + GUI_HEIGHT - 18, 0xAAAAAA, false);
+        // If no entries
+        if (filteredEntries.isEmpty()) {
+            Component empty = Component.literal("No books found")
+                    .withStyle(Style.EMPTY.withItalic(true).withColor(TextColor.fromRgb(COLOR_SUBTLE)));
+            int emptyW = this.font.width(empty);
+            graphics.drawString(this.font, empty, parchCenterX - emptyW / 2, y + 20, COLOR_SUBTLE, false);
+        }
 
-        // Render widgets (buttons)
+        // Page navigation (drawn from texture sprites)
+        renderPageNav(graphics, mouseX, mouseY);
+
+        // Render vanilla widgets (toggle button) on top
         super.render(graphics, mouseX, mouseY, partialTick);
     }
 
-    private void renderEntry(GuiGraphics graphics, int guiLeft, int entryY,
+    private void renderEntry(GuiGraphics graphics, int x, int y,
                              CodexBookEntry entry, int mouseX, int mouseY) {
-        int x = guiLeft + LIST_X_OFFSET;
-
         // Status indicator
         if (entry.collected()) {
-            graphics.drawString(this.font, "\u2713", x, entryY + 2, 0x55FF55, false); // checkmark
+            graphics.drawString(this.font, "\u2022", x, y + 1, COLOR_COLLECTED, false);
         } else {
-            graphics.drawString(this.font, "?", x + 1, entryY + 2, 0x888888, false);
+            graphics.drawString(this.font, "\u2022", x, y + 1, COLOR_UNCOLLECTED, false);
         }
 
-        // Book title
-        int titleX = x + 14;
+        int titleX = x + 8;
+        int maxTitleWidth = TEXT_WIDTH - 8;
+
+        // Action buttons for collected books (positioned at right edge)
+        if (entry.collected()) {
+            // Copy label
+            if (data.allowCopy) {
+                String copyStr = "C";
+                int copyW = this.font.width(copyStr) + 2;
+                int copyX = x + TEXT_WIDTH - copyW;
+                boolean hoverCopy = mouseX >= copyX && mouseX < copyX + copyW
+                        && mouseY >= y && mouseY < y + ENTRY_HEIGHT;
+                graphics.drawString(this.font, copyStr, copyX, y + 1,
+                        hoverCopy ? COLOR_COPY_HOVER : COLOR_COPY, false);
+                entryRegions.add(new EntryRegion(copyX, y, copyX + copyW, y + ENTRY_HEIGHT,
+                        entry.id(), EntryAction.COPY));
+                maxTitleWidth -= copyW + 4;
+            }
+
+            // Read label
+            String readStr = "Read";
+            int readW = this.font.width(readStr);
+            int readX = x + TEXT_WIDTH - readW - (data.allowCopy ? this.font.width("C") + 6 : 0);
+            boolean hoverRead = mouseX >= readX && mouseX < readX + readW
+                    && mouseY >= y && mouseY < y + ENTRY_HEIGHT;
+            graphics.drawString(this.font, readStr, readX, y + 1,
+                    hoverRead ? COLOR_LINK_HOVER : COLOR_LINK, false);
+            entryRegions.add(new EntryRegion(readX, y, readX + readW, y + ENTRY_HEIGHT,
+                    entry.id(), EntryAction.READ));
+            maxTitleWidth -= readW + 6;
+        }
+
+        // Book title (truncated to fit)
         Component titleComp;
         if (entry.collected()) {
-            Style titleStyle = Style.EMPTY;
+            int color = COLOR_TEXT;
             if (entry.titleColor() != null) {
                 try {
-                    titleStyle = titleStyle.withColor(TextColor.fromRgb(Integer.parseInt(entry.titleColor(), 16)));
-                } catch (NumberFormatException ignored) {
-                    titleStyle = titleStyle.withColor(ChatFormatting.YELLOW);
-                }
-            } else {
-                titleStyle = titleStyle.withColor(ChatFormatting.YELLOW);
+                    color = Integer.parseInt(entry.titleColor(), 16);
+                } catch (NumberFormatException ignored) {}
             }
-            titleComp = Component.literal(entry.title()).withStyle(titleStyle);
+            titleComp = Component.literal(entry.title())
+                    .withStyle(Style.EMPTY.withColor(TextColor.fromRgb(color)));
         } else if (data.revealUncollectedNames) {
-            titleComp = Component.literal(entry.title()).withStyle(ChatFormatting.DARK_GRAY);
+            titleComp = Component.literal(entry.title())
+                    .withStyle(Style.EMPTY.withColor(TextColor.fromRgb(COLOR_UNCOLLECTED)));
         } else {
-            titleComp = Component.literal("???").withStyle(ChatFormatting.DARK_GRAY, ChatFormatting.ITALIC);
+            titleComp = Component.literal("???")
+                    .withStyle(Style.EMPTY.withItalic(true).withColor(TextColor.fromRgb(COLOR_UNCOLLECTED)));
         }
 
-        int titleWidth = this.font.width(titleComp);
-        graphics.drawString(this.font, titleComp, titleX, entryY + 2, 0xFFFFFF, false);
+        // Truncate if needed
+        FormattedCharSequence trimmed = this.font.split(titleComp, maxTitleWidth).stream()
+                .findFirst().orElse(FormattedCharSequence.EMPTY);
+        graphics.drawString(this.font, trimmed, titleX, y + 1, COLOR_TEXT, false);
 
-        // Action buttons for collected books
+        // Clickable title region for collected books
         if (entry.collected()) {
-            int readX = guiLeft + GUI_WIDTH - 62;
-            int copyX = guiLeft + GUI_WIDTH - 32;
+            int renderedWidth = Math.min(this.font.width(titleComp), maxTitleWidth);
+            entryRegions.add(new EntryRegion(titleX, y, titleX + renderedWidth, y + ENTRY_HEIGHT,
+                    entry.id(), EntryAction.READ));
+        }
+    }
 
-            // Read button
-            boolean hoverRead = mouseX >= readX && mouseX < readX + 26 && mouseY >= entryY && mouseY < entryY + ENTRY_HEIGHT;
-            Component readLabel = Component.literal("[Read]").withStyle(
-                    hoverRead ? ChatFormatting.WHITE : ChatFormatting.AQUA);
-            graphics.drawString(this.font, readLabel, readX, entryY + 2, 0x55FFFF, false);
-            entryRegions.add(new EntryRegion(readX, entryY, readX + 26, entryY + ENTRY_HEIGHT, entry.id(), EntryAction.READ));
+    private void renderPageNav(GuiGraphics graphics, int mouseX, int mouseY) {
+        int parchCenterX = guiLeft + PARCHMENT_X + PARCHMENT_WIDTH / 2;
+        int navY = prevBtnY;
 
-            // Copy button (if allowed)
-            if (data.allowCopy) {
-                boolean hoverCopy = mouseX >= copyX && mouseX < copyX + 24 && mouseY >= entryY && mouseY < entryY + ENTRY_HEIGHT;
-                Component copyLabel = Component.literal("[C]").withStyle(
-                        hoverCopy ? ChatFormatting.WHITE : ChatFormatting.GOLD);
-                graphics.drawString(this.font, copyLabel, copyX, entryY + 2, 0xFFAA00, false);
-                entryRegions.add(new EntryRegion(copyX, entryY, copyX + 24, entryY + ENTRY_HEIGHT, entry.id(), EntryAction.COPY));
-            }
+        boolean canPrev = currentPage > 0;
+        boolean canNext = currentPage < totalPages - 1;
 
-            // Clickable title region
-            entryRegions.add(new EntryRegion(titleX, entryY, titleX + titleWidth, entryY + ENTRY_HEIGHT, entry.id(), EntryAction.READ));
+        // Previous page button (texture sprite)
+        if (canPrev) {
+            boolean hoverPrev = mouseX >= prevBtnX && mouseX < prevBtnX + BTN_SPRITE_W
+                    && mouseY >= prevBtnY && mouseY < prevBtnY + BTN_SPRITE_H;
+            int u = hoverPrev ? BTN_PREV_HOVER_U : BTN_PREV_NORMAL_U;
+            int v = hoverPrev ? BTN_PREV_HOVER_V : BTN_PREV_NORMAL_V;
+            graphics.blit(CODEX_TEXTURE, prevBtnX, prevBtnY, u, v, BTN_SPRITE_W, BTN_SPRITE_H);
         }
 
-        // Category tag
-        if (entry.category() != null && entry.collected()) {
-            Component categoryComp = Component.literal(" [" + entry.category() + "]")
-                    .withStyle(ChatFormatting.DARK_GRAY, ChatFormatting.ITALIC);
-            graphics.drawString(this.font, categoryComp, titleX + titleWidth, entryY + 2, 0x555555, false);
+        // Next page button (texture sprite)
+        if (canNext) {
+            boolean hoverNext = mouseX >= nextBtnX && mouseX < nextBtnX + BTN_SPRITE_W
+                    && mouseY >= nextBtnY && mouseY < nextBtnY + BTN_SPRITE_H;
+            int u = hoverNext ? BTN_NEXT_HOVER_U : BTN_NEXT_NORMAL_U;
+            int v = hoverNext ? BTN_NEXT_HOVER_V : BTN_NEXT_NORMAL_V;
+            graphics.blit(CODEX_TEXTURE, nextBtnX, nextBtnY, u, v, BTN_SPRITE_W, BTN_SPRITE_H);
         }
+
+        // Page indicator between buttons
+        Component pageLabel = Component.literal((currentPage + 1) + "/" + totalPages)
+                .withStyle(Style.EMPTY.withColor(TextColor.fromRgb(COLOR_SUBTLE)));
+        int labelW = this.font.width(pageLabel);
+        graphics.drawString(this.font, pageLabel, parchCenterX - labelW / 2, navY, COLOR_SUBTLE, false);
     }
 
     @Override
     public boolean mouseClicked(double mouseX, double mouseY, int button) {
         if (button == 0) {
+            // Check page nav sprite buttons
+            if (currentPage > 0 && mouseX >= prevBtnX && mouseX < prevBtnX + BTN_SPRITE_W
+                    && mouseY >= prevBtnY && mouseY < prevBtnY + BTN_SPRITE_H) {
+                currentPage--;
+                return true;
+            }
+            if (currentPage < totalPages - 1 && mouseX >= nextBtnX && mouseX < nextBtnX + BTN_SPRITE_W
+                    && mouseY >= nextBtnY && mouseY < nextBtnY + BTN_SPRITE_H) {
+                currentPage++;
+                return true;
+            }
+
+            // Check entry action regions
             for (EntryRegion region : entryRegions) {
-                if (mouseX >= region.x1 && mouseX < region.x2 && mouseY >= region.y1 && mouseY < region.y2) {
+                if (mouseX >= region.x1 && mouseX < region.x2
+                        && mouseY >= region.y1 && mouseY < region.y2) {
                     if (region.action == EntryAction.READ) {
                         ModNetwork.sendToServer(new ServerboundCodexOpenBookPacket(region.bookId));
                         return true;

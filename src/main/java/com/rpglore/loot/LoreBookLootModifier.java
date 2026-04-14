@@ -79,8 +79,11 @@ public class LoreBookLootModifier extends LootModifier {
         // Calculate effective global drop chance
         double globalChance = ServerConfig.GLOBAL_DROP_CHANCE.get();
         if (ServerConfig.LOOT_SCALING.get() && player != null) {
-            int lootingLevel = EnchantmentHelper.getItemEnchantmentLevel(Enchantments.MOB_LOOTING,
-                    player.getMainHandItem());
+            // Use the loot context's tool parameter for accurate looting level
+            // (handles off-hand weapons, projectile kills, modded weapon mechanics)
+            ItemStack toolUsed = context.getParamOrNull(LootContextParams.TOOL);
+            if (toolUsed == null) toolUsed = player.getMainHandItem();
+            int lootingLevel = EnchantmentHelper.getItemEnchantmentLevel(Enchantments.MOB_LOOTING, toolUsed);
             globalChance += lootingLevel * 0.01;
         }
 
@@ -101,17 +104,24 @@ public class LoreBookLootModifier extends LootModifier {
             }
         }
 
-        // Process books without base_chance override: roll global chance, then select
-        if (!withoutOverride.isEmpty() && random.nextDouble() < globalChance) {
-            List<LoreBookDefinition> selected = selectBooks(withoutOverride, random, maxBooks, useWeights);
-            for (LoreBookDefinition def : selected) {
-                addBookToLoot(def, player, generatedLoot, victim);
+        // Track drops across both groups to enforce maxBooksPerKill globally.
+        // Process base_chance books first (pack author explicitly configured these).
+        int droppedCount = 0;
+
+        for (LoreBookDefinition def : withOverride) {
+            if (droppedCount >= maxBooks) break;
+            if (random.nextDouble() < def.dropCondition().baseChance()) {
+                if (addBookToLoot(def, player, generatedLoot, victim)) {
+                    droppedCount++;
+                }
             }
         }
 
-        // Process books with base_chance override: each book rolls its own chance independently
-        for (LoreBookDefinition def : withOverride) {
-            if (random.nextDouble() < def.dropCondition().baseChance()) {
+        // Process books without base_chance override: roll global chance, then select
+        if (droppedCount < maxBooks && !withoutOverride.isEmpty() && random.nextDouble() < globalChance) {
+            int remaining = maxBooks - droppedCount;
+            List<LoreBookDefinition> selected = selectBooks(withoutOverride, random, remaining, useWeights);
+            for (LoreBookDefinition def : selected) {
                 addBookToLoot(def, player, generatedLoot, victim);
             }
         }
@@ -122,14 +132,15 @@ public class LoreBookLootModifier extends LootModifier {
     /**
      * Validates per-player copy limits and adds a book to the loot list.
      * H2: Recording happens AFTER the stack is added to loot.
+     * @return true if the book was actually added
      */
-    private void addBookToLoot(LoreBookDefinition def, Player player,
+    private boolean addBookToLoot(LoreBookDefinition def, Player player,
                                ObjectArrayList<ItemStack> generatedLoot, LivingEntity victim) {
         // Per-player copy limit check
         if (player != null && def.dropCondition().maxCopiesPerPlayer() >= 0) {
             if (!LoreBookRegistry.canPlayerReceive(player.getUUID(), def.id(),
                     def.dropCondition().maxCopiesPerPlayer())) {
-                return;
+                return false;
             }
         }
 
@@ -142,6 +153,7 @@ public class LoreBookLootModifier extends LootModifier {
         if (player != null && def.dropCondition().maxCopiesPerPlayer() >= 0) {
             LoreBookRegistry.recordPlayerReceived(player.getUUID(), def.id());
         }
+        return true;
     }
 
     // M7: Short-circuit when all candidates fit, regardless of useWeights

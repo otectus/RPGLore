@@ -26,6 +26,11 @@ public final class LoreBookRegistry {
         trackingData = data;
     }
 
+    @Nullable
+    public static LoreTrackingData getTrackingData() {
+        return trackingData;
+    }
+
     // --- Query methods ---
 
     public static List<LoreBookDefinition> getMatchingBooks(DropConditionContext ctx) {
@@ -59,6 +64,19 @@ public final class LoreBookRegistry {
      */
     public static int getCodexEligibleCount() {
         return (int) BOOKS.values().stream().filter(def -> !def.codexExclude()).count();
+    }
+
+    /**
+     * Returns the set of book IDs that are eligible for Codex inclusion (not excluded).
+     */
+    public static Set<String> getCodexEligibleIds() {
+        Set<String> ids = new java.util.HashSet<>();
+        for (LoreBookDefinition def : BOOKS.values()) {
+            if (!def.codexExclude()) {
+                ids.add(def.id());
+            }
+        }
+        return ids;
     }
 
     // --- Per-player copy tracking (delegated to LoreTrackingData) ---

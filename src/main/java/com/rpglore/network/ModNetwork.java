@@ -10,7 +10,7 @@ import net.minecraftforge.network.simple.SimpleChannel;
 
 public class ModNetwork {
     private static SimpleChannel INSTANCE;
-    private static final String PROTOCOL_VERSION = "1";
+    private static final String PROTOCOL_VERSION = "2";
 
     public static void register() {
         INSTANCE = NetworkRegistry.newSimpleChannel(
@@ -50,6 +50,12 @@ public class ModNetwork {
                 .encoder(ClientboundCodexOpenBookPacket::encode)
                 .decoder(ClientboundCodexOpenBookPacket::decode)
                 .consumerMainThread(ClientboundCodexOpenBookPacket::handle)
+                .add();
+
+        INSTANCE.messageBuilder(ClientboundCodexCollectionEventPacket.class, id++, NetworkDirection.PLAY_TO_CLIENT)
+                .encoder(ClientboundCodexCollectionEventPacket::encode)
+                .decoder(ClientboundCodexCollectionEventPacket::decode)
+                .consumerMainThread(ClientboundCodexCollectionEventPacket::handle)
                 .add();
     }
 

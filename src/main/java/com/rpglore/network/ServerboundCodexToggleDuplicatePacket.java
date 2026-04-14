@@ -1,6 +1,6 @@
 package com.rpglore.network;
 
-import com.rpglore.codex.CodexTrackingData;
+import com.rpglore.codex.CodexService;
 import com.rpglore.config.ServerConfig;
 import net.minecraft.network.FriendlyByteBuf;
 import net.minecraft.server.level.ServerPlayer;
@@ -26,15 +26,10 @@ public class ServerboundCodexToggleDuplicatePacket {
             if (player == null) return;
             if (!ServerConfig.CODEX_ALLOW_DUPLICATE_PREVENTION.get()) return;
 
-            CodexTrackingData data = CodexTrackingData.getInstance();
-            if (data == null) return;
+            CodexService service = CodexService.get();
+            if (service == null) return;
 
-            boolean current = data.isPreventDuplicates(player.getUUID());
-            data.setPreventDuplicates(player.getUUID(), !current);
-
-            // Send updated sync
-            ClientboundCodexSyncPacket syncPacket = ClientboundCodexSyncPacket.create(player.getUUID(), data);
-            ModNetwork.sendToPlayer(syncPacket, player);
+            service.toggleDuplicatePrevention(player);
         });
         ctx.get().setPacketHandled(true);
     }

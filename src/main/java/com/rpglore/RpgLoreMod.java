@@ -1,6 +1,7 @@
 package com.rpglore;
 
 import com.rpglore.codex.CodexEventHandler;
+import com.rpglore.codex.CodexService;
 import com.rpglore.codex.CodexTrackingData;
 import com.rpglore.command.RpgLoreCommands;
 import com.rpglore.config.BooksConfigLoader;
@@ -8,6 +9,7 @@ import com.rpglore.config.ClientConfig;
 import com.rpglore.config.LoreBookRegistry;
 import com.rpglore.config.ServerConfig;
 import com.rpglore.data.LoreTrackingData;
+import com.rpglore.lore.LoreBookLecternHandler;
 import com.rpglore.loot.ModLootModifiers;
 import com.rpglore.network.ModNetwork;
 import com.rpglore.registry.ModItems;
@@ -58,6 +60,9 @@ public class RpgLoreMod {
         // Register Codex event handler
         MinecraftForge.EVENT_BUS.register(CodexEventHandler.class);
 
+        // Allow LoreBookItem to be placed in vanilla lecterns
+        MinecraftForge.EVENT_BUS.register(LoreBookLecternHandler.class);
+
         LOGGER.info("RPG Lore initializing");
     }
 
@@ -65,7 +70,9 @@ public class RpgLoreMod {
     private void onBuildCreativeTabContents(BuildCreativeModeTabContentsEvent event) {
         if (event.getTabKey() == CreativeModeTabs.TOOLS_AND_UTILITIES) {
             event.accept(ModItems.LORE_BOOK);
-            event.accept(ModItems.LORE_CODEX);
+            if (ServerConfig.CODEX_ENABLED.get()) {
+                event.accept(ModItems.LORE_CODEX);
+            }
         }
     }
 
@@ -76,22 +83,24 @@ public class RpgLoreMod {
         LoreTrackingData trackingData = LoreTrackingData.getOrCreate(overworld);
         LoreBookRegistry.setTrackingData(trackingData);
 
-        // Set up Codex tracking data
+        // Set up Codex tracking data and service
         CodexTrackingData codexData = CodexTrackingData.getOrCreate(overworld);
         CodexTrackingData.setInstance(codexData);
+        CodexService.init(codexData);
 
         BooksConfigLoader.ensureDefaults();
         BooksConfigLoader.reload();
 
         // Prune stale entries from both tracking systems
         trackingData.pruneStaleEntries(LoreBookRegistry.getAllBookIds());
-        codexData.pruneStaleEntries(LoreBookRegistry.getAllBookIds());
+        codexData.pruneStaleEntries(LoreBookRegistry.getCodexEligibleIds());
     }
 
     private void onServerStopped(final ServerStoppedEvent event) {
         // Clear tracking data references to avoid holding stale world data
         LoreBookRegistry.setTrackingData(null);
         CodexTrackingData.setInstance(null);
+        CodexService.clear();
     }
 
     private void onRegisterCommands(final RegisterCommandsEvent event) {

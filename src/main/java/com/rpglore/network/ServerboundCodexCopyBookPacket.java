@@ -5,17 +5,23 @@ import com.rpglore.config.LoreBookRegistry;
 import com.rpglore.config.ServerConfig;
 import com.rpglore.lore.LoreBookDefinition;
 import com.rpglore.lore.LoreBookItem;
-import net.minecraft.ChatFormatting;
 import net.minecraft.nbt.CompoundTag;
 import net.minecraft.network.FriendlyByteBuf;
 import net.minecraft.network.chat.Component;
 import net.minecraft.server.level.ServerPlayer;
+import net.minecraft.sounds.SoundEvents;
+import net.minecraft.sounds.SoundSource;
 import net.minecraft.world.item.ItemStack;
 import net.minecraftforge.network.NetworkEvent;
 
 import java.util.Optional;
 import java.util.function.Supplier;
 
+/**
+ * Creates a physical copy of a book from the Codex into the player's inventory.
+ * Since the Codex stores the original, copies are created directly from its data.
+ * The copy has generation incremented (capped at 3) to distinguish it from originals.
+ */
 public class ServerboundCodexCopyBookPacket {
 
     private final String bookId;
@@ -41,48 +47,31 @@ public class ServerboundCodexCopyBookPacket {
             CodexTrackingData data = CodexTrackingData.getInstance();
             if (data == null) return;
 
-            // Validate book is in collection
+            // Validate book is in the player's Codex collection
             if (!data.hasBook(player.getUUID(), bookId)) return;
 
-            // Find physical copy in inventory
-            int slot = findBookInInventory(player, bookId);
-            if (slot < 0) {
-                player.displayClientMessage(
-                        Component.translatable("rpg_lore.codex.no_physical_copy")
-                                .withStyle(ChatFormatting.RED),
-                        true);
-                return;
-            }
-
-            // Consume the physical copy
-            player.getInventory().removeItem(slot, 1);
-
-            // Create a new copy with generation incremented
+            // Look up the book definition
             Optional<LoreBookDefinition> optDef = LoreBookRegistry.getById(bookId);
             if (optDef.isEmpty()) return;
 
+            // Reject if inventory is full to avoid unpickable dropped copies
+            if (player.getInventory().getFreeSlot() == -1) {
+                player.displayClientMessage(
+                        Component.translatable("rpg_lore.codex.copy.inventory_full"), false);
+                return;
+            }
+
+            // Create a physical copy with generation incremented to mark it as a copy
             ItemStack copy = LoreBookItem.createStack(optDef.get());
             CompoundTag copyTag = copy.getOrCreateTag();
             int newGen = Math.min(copyTag.getInt("generation") + 1, 3);
             copyTag.putInt("generation", newGen);
 
-            if (!player.getInventory().add(copy)) {
-                player.drop(copy, false);
-            }
+            player.getInventory().add(copy);
+
+            player.level().playSound(null, player.getX(), player.getY(), player.getZ(),
+                    SoundEvents.BOOK_PAGE_TURN, SoundSource.PLAYERS, 0.5f, 1.0f);
         });
         ctx.get().setPacketHandled(true);
-    }
-
-    private static int findBookInInventory(ServerPlayer player, String bookId) {
-        for (int i = 0; i < player.getInventory().getContainerSize(); i++) {
-            ItemStack stack = player.getInventory().getItem(i);
-            if (stack.getItem() instanceof LoreBookItem) {
-                CompoundTag tag = stack.getTag();
-                if (tag != null && bookId.equals(tag.getString("lore_id"))) {
-                    return i;
-                }
-            }
-        }
-        return -1;
     }
 }

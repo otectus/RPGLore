@@ -4,6 +4,7 @@ import com.mojang.brigadier.CommandDispatcher;
 import com.mojang.brigadier.arguments.BoolArgumentType;
 import com.mojang.brigadier.context.CommandContext;
 import com.mojang.brigadier.suggestion.SuggestionProvider;
+import com.rpglore.codex.CodexService;
 import com.rpglore.codex.CodexTrackingData;
 import com.rpglore.config.LoreBookRegistry;
 import com.rpglore.config.BooksConfigLoader;
@@ -108,8 +109,15 @@ public final class RpgLoreCommands {
     private static int executeReload(CommandContext<CommandSourceStack> ctx) {
         BooksConfigLoader.reload();
         int total = LoreBookRegistry.getBookCount();
+
+        // Prune stale entries and resync all online players
+        CodexService service = CodexService.get();
+        if (service != null && ctx.getSource().getServer() != null) {
+            service.pruneAndResync(ctx.getSource().getServer());
+        }
+
         ctx.getSource().sendSuccess(
-                () -> Component.literal("RPG Lore: Reloaded " + total + " book definition(s)"),
+                () -> Component.translatable("rpg_lore.command.reload.success", total),
                 true);
         return 1;
     }
@@ -120,7 +128,7 @@ public final class RpgLoreCommands {
 
         Optional<LoreBookDefinition> optDef = LoreBookRegistry.getById(bookId);
         if (optDef.isEmpty()) {
-            ctx.getSource().sendFailure(Component.literal("Unknown lore book: " + bookId));
+            ctx.getSource().sendFailure(Component.translatable("rpg_lore.command.unknown_book", bookId));
             return 0;
         }
 
@@ -153,8 +161,10 @@ public final class RpgLoreCommands {
         final String title = def.title();
         final boolean tracked = track;
         ctx.getSource().sendSuccess(
-                () -> Component.literal("Gave \"" + title + "\" to " + given + " player(s)"
-                        + (tracked ? " (tracked)" : "")),
+                () -> Component.translatable(
+                        tracked ? "rpg_lore.command.give.success.tracked"
+                                : "rpg_lore.command.give.success.untracked",
+                        title, given),
                 true);
         return count;
     }
@@ -163,18 +173,21 @@ public final class RpgLoreCommands {
         Collection<LoreBookDefinition> books = LoreBookRegistry.getAllBooks();
         if (books.isEmpty()) {
             ctx.getSource().sendSuccess(
-                    () -> Component.literal("RPG Lore: No book definitions loaded"),
+                    () -> Component.translatable("rpg_lore.command.list.none"),
                     false);
             return 0;
         }
 
         ctx.getSource().sendSuccess(
-                () -> Component.literal("RPG Lore: " + books.size() + " book(s) loaded:"),
+                () -> Component.translatable("rpg_lore.command.list.header", books.size()),
                 false);
         for (LoreBookDefinition def : books) {
-            String category = def.category() != null ? " [" + def.category() + "]" : "";
+            Component category = def.category() != null
+                    ? Component.translatable("rpg_lore.command.list.category", def.category())
+                    : Component.empty();
             ctx.getSource().sendSuccess(
-                    () -> Component.literal("  - " + def.id() + " (\"" + def.title() + "\")" + category),
+                    () -> Component.translatable("rpg_lore.command.list.entry",
+                            def.id(), def.title(), category),
                     false);
         }
         return books.size();
@@ -183,53 +196,64 @@ public final class RpgLoreCommands {
     // E5: Self-service collection view (permission level 0)
     private static int executeCollection(CommandContext<CommandSourceStack> ctx) {
         if (!(ctx.getSource().getEntity() instanceof ServerPlayer player)) {
-            ctx.getSource().sendFailure(Component.literal("This command can only be used by players"));
+            ctx.getSource().sendFailure(Component.translatable("rpg_lore.command.players_only"));
             return 0;
         }
 
         CodexTrackingData codexData = CodexTrackingData.getInstance();
         if (codexData == null) {
-            ctx.getSource().sendFailure(Component.literal("Codex data not available"));
+            ctx.getSource().sendFailure(Component.translatable("rpg_lore.command.codex.unavailable"));
             return 0;
         }
 
         Set<String> collected = codexData.getCollectedBooks(player.getUUID());
-        int totalEligible = LoreBookRegistry.getCodexEligibleCount();
+        Set<String> eligibleIds = LoreBookRegistry.getCodexEligibleIds();
+
+        // Only count collected books that are still eligible
+        int eligibleCollected = 0;
+        for (String id : collected) {
+            if (eligibleIds.contains(id)) eligibleCollected++;
+        }
+        int totalEligible = eligibleIds.size();
+        final int displayCount = eligibleCollected;
 
         ctx.getSource().sendSuccess(
-                () -> Component.literal("Lore Collection: " + collected.size() + " / " + totalEligible),
+                () -> Component.translatable("rpg_lore.command.collection.header",
+                        displayCount, totalEligible),
                 false);
 
         if (!collected.isEmpty()) {
             for (String bookId : collected) {
+                if (!eligibleIds.contains(bookId)) continue;
                 Optional<LoreBookDefinition> optDef = LoreBookRegistry.getById(bookId);
-                String title = optDef.map(LoreBookDefinition::title).orElse("(unknown)");
+                String title = optDef.map(LoreBookDefinition::title)
+                        .orElseGet(() -> Component.translatable("rpg_lore.command.unknown_title").getString());
                 ctx.getSource().sendSuccess(
-                        () -> Component.literal("  - " + title),
+                        () -> Component.translatable("rpg_lore.command.collection.entry", title),
                         false);
             }
         }
-        return collected.size();
+        return displayCount;
     }
 
     // --- Codex admin commands ---
 
     private static int executeCodexReset(CommandContext<CommandSourceStack> ctx) throws com.mojang.brigadier.exceptions.CommandSyntaxException {
         Collection<ServerPlayer> targets = EntityArgument.getPlayers(ctx, "targets");
-        CodexTrackingData codexData = CodexTrackingData.getInstance();
-        if (codexData == null) {
-            ctx.getSource().sendFailure(Component.literal("Codex data not available"));
+        CodexService service = CodexService.get();
+        if (service == null) {
+            ctx.getSource().sendFailure(Component.translatable("rpg_lore.command.codex.unavailable"));
             return 0;
         }
 
         int count = 0;
         for (ServerPlayer player : targets) {
-            codexData.clearPlayer(player.getUUID());
+            service.resetPlayer(player);
             count++;
         }
         final int total = count;
         ctx.getSource().sendSuccess(
-                () -> Component.literal("Reset Codex for " + total + " player(s)"),
+                () -> Component.translatable("rpg_lore.command.codex.reset.success", total),
                 true);
         return count;
     }
@@ -240,25 +264,25 @@ public final class RpgLoreCommands {
 
         Optional<LoreBookDefinition> optDef = LoreBookRegistry.getById(bookId);
         if (optDef.isEmpty()) {
-            ctx.getSource().sendFailure(Component.literal("Unknown lore book: " + bookId));
+            ctx.getSource().sendFailure(Component.translatable("rpg_lore.command.unknown_book", bookId));
             return 0;
         }
 
-        CodexTrackingData codexData = CodexTrackingData.getInstance();
-        if (codexData == null) {
-            ctx.getSource().sendFailure(Component.literal("Codex data not available"));
+        CodexService service = CodexService.get();
+        if (service == null) {
+            ctx.getSource().sendFailure(Component.translatable("rpg_lore.command.codex.unavailable"));
             return 0;
         }
 
         int count = 0;
         for (ServerPlayer player : targets) {
-            codexData.addBook(player.getUUID(), bookId);
+            service.collectBook(player, bookId);
             count++;
         }
         final int total = count;
         final String title = optDef.get().title();
         ctx.getSource().sendSuccess(
-                () -> Component.literal("Added \"" + title + "\" to Codex for " + total + " player(s)"),
+                () -> Component.translatable("rpg_lore.command.codex.add.success", title, total),
                 true);
         return count;
     }
@@ -267,20 +291,20 @@ public final class RpgLoreCommands {
         Collection<ServerPlayer> targets = EntityArgument.getPlayers(ctx, "targets");
         String bookId = ResourceLocationArgument.getId(ctx, "book_id").toString();
 
-        CodexTrackingData codexData = CodexTrackingData.getInstance();
-        if (codexData == null) {
-            ctx.getSource().sendFailure(Component.literal("Codex data not available"));
+        CodexService service = CodexService.get();
+        if (service == null) {
+            ctx.getSource().sendFailure(Component.translatable("rpg_lore.command.codex.unavailable"));
             return 0;
         }
 
         int count = 0;
         for (ServerPlayer player : targets) {
-            codexData.removeBook(player.getUUID(), bookId);
+            service.removeBook(player, bookId);
             count++;
         }
         final int total = count;
         ctx.getSource().sendSuccess(
-                () -> Component.literal("Removed book from Codex for " + total + " player(s)"),
+                () -> Component.translatable("rpg_lore.command.codex.remove.success", total),
                 true);
         return count;
     }
@@ -291,7 +315,6 @@ public final class RpgLoreCommands {
 
         for (ServerPlayer player : targets) {
             ItemStack codex = new ItemStack(ModItems.LORE_CODEX.get());
-            codex.getOrCreateTag().putString("codex_owner", player.getUUID().toString());
 
             if (!player.getInventory().add(codex)) {
                 ItemEntity drop = player.drop(codex, false);
@@ -308,7 +331,7 @@ public final class RpgLoreCommands {
 
         final int total = count;
         ctx.getSource().sendSuccess(
-                () -> Component.literal("Gave Lore Codex to " + total + " player(s)"),
+                () -> Component.translatable("rpg_lore.command.codex.give.success", total),
                 true);
         return count;
     }
@@ -317,28 +340,39 @@ public final class RpgLoreCommands {
         ServerPlayer target = EntityArgument.getPlayer(ctx, "target");
         CodexTrackingData codexData = CodexTrackingData.getInstance();
         if (codexData == null) {
-            ctx.getSource().sendFailure(Component.literal("Codex data not available"));
+            ctx.getSource().sendFailure(Component.translatable("rpg_lore.command.codex.unavailable"));
             return 0;
         }
 
         Set<String> collected = codexData.getCollectedBooks(target.getUUID());
-        int totalEligible = LoreBookRegistry.getCodexEligibleCount();
+        Set<String> eligibleIds = LoreBookRegistry.getCodexEligibleIds();
         boolean preventDuplicates = codexData.isPreventDuplicates(target.getUUID());
 
+        int eligibleCollected = 0;
+        for (String id : collected) {
+            if (eligibleIds.contains(id)) eligibleCollected++;
+        }
+        int totalEligible = eligibleIds.size();
+        final int displayCount = eligibleCollected;
+        final String targetName = target.getName().getString();
+        final String headerKey = preventDuplicates
+                ? "rpg_lore.command.codex.status.header.blocking"
+                : "rpg_lore.command.codex.status.header";
+
         ctx.getSource().sendSuccess(
-                () -> Component.literal(target.getName().getString() + "'s Codex: " +
-                        collected.size() + " / " + totalEligible +
-                        (preventDuplicates ? " (blocking duplicates)" : "")),
+                () -> Component.translatable(headerKey, targetName, displayCount, totalEligible),
                 false);
 
         for (String bookId : collected) {
+            if (!eligibleIds.contains(bookId)) continue;
             Optional<LoreBookDefinition> optDef = LoreBookRegistry.getById(bookId);
-            String title = optDef.map(LoreBookDefinition::title).orElse("(unknown)");
+            String title = optDef.map(LoreBookDefinition::title)
+                    .orElseGet(() -> Component.translatable("rpg_lore.command.unknown_title").getString());
             ctx.getSource().sendSuccess(
-                    () -> Component.literal("  - " + title + " [" + bookId + "]"),
+                    () -> Component.translatable("rpg_lore.command.codex.status.entry", title, bookId),
                     false);
         }
-        return collected.size();
+        return displayCount;
     }
 
     private RpgLoreCommands() {}

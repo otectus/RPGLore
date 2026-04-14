@@ -37,6 +37,7 @@ public class ClientboundCodexSyncPacket {
 
     public static ClientboundCodexSyncPacket create(UUID playerUuid, CodexTrackingData data) {
         Set<String> collected = data.getCollectedBooks(playerUuid);
+        Set<String> eligibleIds = LoreBookRegistry.getCodexEligibleIds();
         List<LoreCodexScreen.CodexBookEntry> catalog = new ArrayList<>();
 
         for (LoreBookDefinition def : LoreBookRegistry.getAllBooks()) {
@@ -55,11 +56,18 @@ public class ClientboundCodexSyncPacket {
         catalog.sort(Comparator.<LoreCodexScreen.CodexBookEntry, Boolean>comparing(e -> !e.collected())
                 .thenComparing(LoreCodexScreen.CodexBookEntry::title));
 
+        // Compute collected count as intersection with eligible IDs
+        // (prevents collected > total when a book becomes excluded)
+        int collectedEligible = 0;
+        for (String id : collected) {
+            if (eligibleIds.contains(id)) collectedEligible++;
+        }
+
         return new ClientboundCodexSyncPacket(
                 catalog,
                 data.isPreventDuplicates(playerUuid),
-                collected.size(),
-                (int) LoreBookRegistry.getAllBooks().stream().filter(d -> !d.codexExclude()).count(),
+                collectedEligible,
+                eligibleIds.size(),
                 ServerConfig.CODEX_ALLOW_COPY.get(),
                 ServerConfig.CODEX_ALLOW_DUPLICATE_PREVENTION.get(),
                 ServerConfig.CODEX_REVEAL_UNCOLLECTED_NAMES.get()
@@ -71,16 +79,12 @@ public class ClientboundCodexSyncPacket {
         for (LoreCodexScreen.CodexBookEntry entry : catalog) {
             buf.writeUtf(entry.id());
             buf.writeUtf(entry.title());
-            buf.writeUtf(entry.author());
             buf.writeBoolean(entry.collected());
             buf.writeBoolean(entry.titleColor() != null);
             if (entry.titleColor() != null) {
                 buf.writeUtf(entry.titleColor());
             }
-            buf.writeBoolean(entry.category() != null);
-            if (entry.category() != null) {
-                buf.writeUtf(entry.category());
-            }
+            // author and category are not transmitted (not used by the UI)
         }
         buf.writeBoolean(preventDuplicates);
         buf.writeVarInt(collectedCount);
@@ -96,11 +100,10 @@ public class ClientboundCodexSyncPacket {
         for (int i = 0; i < size; i++) {
             String id = buf.readUtf();
             String title = buf.readUtf();
-            String author = buf.readUtf();
             boolean collected = buf.readBoolean();
             String titleColor = buf.readBoolean() ? buf.readUtf() : null;
-            String category = buf.readBoolean() ? buf.readUtf() : null;
-            catalog.add(new LoreCodexScreen.CodexBookEntry(id, title, author, collected, titleColor, category));
+            // author and category not transmitted; fill with defaults
+            catalog.add(new LoreCodexScreen.CodexBookEntry(id, title, "", collected, titleColor, null));
         }
         boolean preventDuplicates = buf.readBoolean();
         int collectedCount = buf.readVarInt();

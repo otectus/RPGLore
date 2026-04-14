@@ -5,19 +5,19 @@ import net.minecraft.nbt.CompoundTag;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.world.level.saveddata.SavedData;
 
+import java.util.HashMap;
 import java.util.Map;
 import java.util.UUID;
-import java.util.concurrent.ConcurrentHashMap;
 
 /**
  * Persists per-player lore book copy counts to the world's data folder.
- * Thread-safe via ConcurrentHashMap.
+ * All access is on the server main thread (Forge events, command handlers, enqueueWork).
  */
 public class LoreTrackingData extends SavedData {
 
     private static final String DATA_NAME = RpgLoreMod.MODID + "_tracking";
 
-    private final ConcurrentHashMap<UUID, ConcurrentHashMap<String, Integer>> playerCopies = new ConcurrentHashMap<>();
+    private final Map<UUID, Map<String, Integer>> playerCopies = new HashMap<>();
 
     public LoreTrackingData() {}
 
@@ -28,7 +28,7 @@ public class LoreTrackingData extends SavedData {
             try {
                 UUID uuid = UUID.fromString(uuidStr);
                 CompoundTag books = players.getCompound(uuidStr);
-                ConcurrentHashMap<String, Integer> bookCounts = new ConcurrentHashMap<>();
+                Map<String, Integer> bookCounts = new HashMap<>();
                 for (String bookId : books.getAllKeys()) {
                     bookCounts.put(bookId, books.getInt(bookId));
                 }
@@ -43,7 +43,7 @@ public class LoreTrackingData extends SavedData {
     @Override
     public CompoundTag save(CompoundTag tag) {
         CompoundTag players = new CompoundTag();
-        for (Map.Entry<UUID, ConcurrentHashMap<String, Integer>> entry : playerCopies.entrySet()) {
+        for (Map.Entry<UUID, Map<String, Integer>> entry : playerCopies.entrySet()) {
             CompoundTag books = new CompoundTag();
             for (Map.Entry<String, Integer> bookEntry : entry.getValue().entrySet()) {
                 books.putInt(bookEntry.getKey(), bookEntry.getValue());
@@ -56,13 +56,13 @@ public class LoreTrackingData extends SavedData {
 
     public boolean canPlayerReceive(UUID playerUuid, String bookId, int maxCopies) {
         if (maxCopies < 0) return true;
-        ConcurrentHashMap<String, Integer> books = playerCopies.get(playerUuid);
+        Map<String, Integer> books = playerCopies.get(playerUuid);
         if (books == null) return true;
         return books.getOrDefault(bookId, 0) < maxCopies;
     }
 
     public void recordPlayerReceived(UUID playerUuid, String bookId) {
-        playerCopies.computeIfAbsent(playerUuid, k -> new ConcurrentHashMap<>())
+        playerCopies.computeIfAbsent(playerUuid, k -> new HashMap<>())
                 .merge(bookId, 1, Integer::sum);
         setDirty();
     }
@@ -71,7 +71,7 @@ public class LoreTrackingData extends SavedData {
      * Removes tracking entries for book IDs that are no longer loaded.
      */
     public void pruneStaleEntries(java.util.Set<String> validBookIds) {
-        for (ConcurrentHashMap<String, Integer> books : playerCopies.values()) {
+        for (Map<String, Integer> books : playerCopies.values()) {
             books.keySet().retainAll(validBookIds);
         }
         // Remove players with no remaining entries

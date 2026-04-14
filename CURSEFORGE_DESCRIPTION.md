@@ -17,13 +17,14 @@ RPG Lore lets modpack makers and server owners add custom lore books to their wo
 - **Per-player copy limits** -- optionally restrict how many times each player can receive a specific book.
 - **Looting scaling** -- optionally increase drop chance with the Looting enchantment.
 
-### Lore Codex (New in 2.0)
-- **Personal collection tracker** -- a soul-bound item that records every lore book you've found.
-- **Auto-collection** -- picking up a lore book for the first time automatically adds it to your Codex.
+### Lore Codex
+- **Personal collection book** -- a soul-bound item that stores your lore books directly inside it.
+- **Books go into the Codex** -- when you pick up a new lore book, it's consumed from the world and stored in the Codex. No inventory clutter.
+- **Browsable GUI** -- custom parchment-styled screen with paginated book list, collection counter (n/N), and per-book Read and Copy actions.
+- **Copy mechanic** -- create a physical copy of any collected book into your inventory. Copies always go to your inventory with generation incremented.
 - **Soul-bound** -- granted on first login, kept on death, cannot be dropped.
-- **Browsable GUI** -- paginated book list with search, collection counter (n/N), and per-book Read and Copy buttons.
 - **Duplicate prevention** -- toggle to block picking up lore books you've already collected.
-- **Copy mechanic** -- duplicate any collected book by consuming a physical copy from your inventory.
+- **Curios API support** -- equip the Codex in a dedicated "codex" Curios slot. Soft dependency -- works without Curios installed.
 
 ### For Pack Makers
 - **Hot-reloadable** -- use `/rpglore reload` to apply changes without restarting.
@@ -48,6 +49,7 @@ RPG Lore lets modpack makers and server owners add custom lore books to their wo
 2. Start the game once -- the mod generates example configs and a sample book.
 3. Add your `.json` book files to `config/rpg_lore/books/`.
 4. Use `/rpglore reload` to apply changes.
+5. Players receive a Lore Codex on first join. Right-click to browse your collection.
 
 ---
 
@@ -79,6 +81,10 @@ RPG Lore lets modpack makers and server owners add custom lore books to their wo
 
 All settings are in `config/rpg_lore/server.toml` and `config/rpg_lore/client.toml`. Every Codex feature can be individually toggled on or off.
 
+## Compatibility
+
+- **Curios API** (optional) -- equip the Codex in a dedicated Curios slot. All features work from either inventory or Curios slot. The mod functions fully without Curios installed.
+
 ## Localization
 
 Localized in **60 languages** including English, Chinese, Spanish, Hindi, Arabic, French, German, Russian, Japanese, Korean, and 50 more.
@@ -86,5 +92,6 @@ Localized in **60 languages** including English, Chinese, Spanish, Hindi, Arabic
 ---
 
 **Requires:** Minecraft 1.20.1 | Forge 47.3.0+ | Java 17
+**Optional:** Curios API 5.4.7+
 **License:** MIT
 **Source:** [GitHub](https://github.com/otectus/RPGLore)

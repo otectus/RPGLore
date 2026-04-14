@@ -10,20 +10,19 @@ import net.minecraft.world.level.saveddata.SavedData;
 
 import javax.annotation.Nullable;
 import java.util.*;
-import java.util.concurrent.ConcurrentHashMap;
 
 /**
  * Persists per-player Codex collection data to the world's data folder.
- * Thread-safe via ConcurrentHashMap.
+ * All access is on the server main thread (Forge events, command handlers, enqueueWork).
  */
 public class CodexTrackingData extends SavedData {
 
     private static final String DATA_NAME = RpgLoreMod.MODID + "_codex";
 
     @Nullable
-    private static volatile CodexTrackingData instance;
+    private static CodexTrackingData instance;
 
-    private final ConcurrentHashMap<UUID, PlayerCodexData> playerCodexes = new ConcurrentHashMap<>();
+    private final Map<UUID, PlayerCodexData> playerCodexes = new HashMap<>();
 
     public CodexTrackingData() {}
 
@@ -109,9 +108,14 @@ public class CodexTrackingData extends SavedData {
 
     // --- Maintenance ---
 
-    public void pruneStaleEntries(Set<String> validBookIds) {
+    /**
+     * Removes collected book entries that are no longer codex-eligible.
+     * Uses the eligible set (not all book IDs) so that books switched to
+     * codexExclude=true are also pruned.
+     */
+    public void pruneStaleEntries(Set<String> codexEligibleIds) {
         for (PlayerCodexData data : playerCodexes.values()) {
-            data.collectedBookIds.retainAll(validBookIds);
+            data.collectedBookIds.retainAll(codexEligibleIds);
         }
         setDirty();
     }
@@ -175,8 +179,8 @@ public class CodexTrackingData extends SavedData {
     // --- Internal data class ---
 
     private static class PlayerCodexData {
-        final Set<String> collectedBookIds = ConcurrentHashMap.newKeySet();
-        volatile boolean preventDuplicatePickup = false;
-        volatile boolean hasEverReceivedCodex = false;
+        final Set<String> collectedBookIds = new HashSet<>();
+        boolean preventDuplicatePickup = false;
+        boolean hasEverReceivedCodex = false;
     }
 }

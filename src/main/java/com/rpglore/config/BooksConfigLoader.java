@@ -208,6 +208,12 @@ public final class BooksConfigLoader {
         // id: use explicit field or derive from filename
         String id = getStringOrDefault(root, "id", "rpg_lore:" + fileId);
 
+        // Validate ID is a valid ResourceLocation
+        if (!ResourceLocation.isValidResourceLocation(id)) {
+            RpgLoreMod.LOGGER.error("Lore book '{}' has invalid id '{}', skipping", filename, id);
+            return null;
+        }
+
         // title (required)
         String title = getStringOrDefault(root, "title", "");
         if (title.isEmpty()) {
@@ -311,6 +317,15 @@ public final class BooksConfigLoader {
         Integer minY = drop.has("min_y") ? drop.get("min_y").getAsInt() : null;
         Integer maxY = drop.has("max_y") ? drop.get("max_y").getAsInt() : null;
 
+        // Validate min_y <= max_y when both are present
+        if (minY != null && maxY != null && minY > maxY) {
+            RpgLoreMod.LOGGER.warn("Lore book '{}' has min_y ({}) > max_y ({}), swapping values",
+                    filename, minY, maxY);
+            Integer temp = minY;
+            minY = maxY;
+            maxY = temp;
+        }
+
         DropCondition.TimeFilter time = DropCondition.TimeFilter.ANY;
         if (drop.has("time")) {
             try {
@@ -332,6 +347,11 @@ public final class BooksConfigLoader {
         boolean requirePlayerKill = !drop.has("require_player_kill") || drop.get("require_player_kill").getAsBoolean();
 
         Double baseChance = drop.has("base_chance") ? drop.get("base_chance").getAsDouble() : null;
+        if (baseChance != null && (baseChance < 0.0 || baseChance > 1.0)) {
+            RpgLoreMod.LOGGER.warn("Lore book '{}' has base_chance {} outside [0.0, 1.0], clamping",
+                    filename, baseChance);
+            baseChance = Math.max(0.0, Math.min(1.0, baseChance));
+        }
 
         // M9: Validate max_copies_per_player range
         int maxCopiesPerPlayer = drop.has("max_copies_per_player") ? drop.get("max_copies_per_player").getAsInt() : -1;
