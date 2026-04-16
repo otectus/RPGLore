@@ -1,5 +1,14 @@
 # Changelog
 
+## [2.0.6] - 2026-04-16
+
+### New Features
+- **Lore Codex storable in Chiseled Bookshelves** -- the Codex can now be placed alongside regular lore books via the `minecraft:bookshelf_books` item tag.
+- **Lore Codex placeable on Lecterns** -- right-click an empty lectern while holding the Codex to place it. Right-clicking a Codex-holding lectern opens the Codex GUI instead of vanilla's empty-book reader (the Codex has no `pages` NBT). The GUI shows the interacting player's own synced collection, consistent with in-hand `LoreCodexItem#use`.
+
+### Improvements
+- **Data-generation scaffolding** -- `ModItemTagsProvider` now also emits `rpg_lore:lore_codex` into `minecraft:bookshelf_books`. Hand-written JSON remains authoritative (datagen still blocked by the pre-existing Curios mixin/mappings clash).
+
 ## [2.0.5] - 2026-04-13
 
 ### New Features

@@ -17,7 +17,8 @@ import java.util.concurrent.CompletableFuture;
  * Run via {@code ./gradlew runData}.
  *
  * <p>Currently emits the vanilla {@code minecraft:bookshelf_books} tag so
- * LoreBookItem can be stored in chiseled bookshelves alongside regular books.
+ * LoreBookItem and LoreCodexItem can be stored in chiseled bookshelves
+ * alongside regular books.
  */
 public class ModItemTagsProvider extends ItemTagsProvider {
 
@@ -30,6 +31,8 @@ public class ModItemTagsProvider extends ItemTagsProvider {
 
     @Override
     protected void addTags(HolderLookup.Provider provider) {
-        tag(ItemTags.BOOKSHELF_BOOKS).add(ModItems.LORE_BOOK.get());
+        tag(ItemTags.BOOKSHELF_BOOKS)
+                .add(ModItems.LORE_BOOK.get())
+                .add(ModItems.LORE_CODEX.get());
     }
 }
