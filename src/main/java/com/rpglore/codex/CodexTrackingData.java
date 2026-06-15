@@ -19,6 +19,9 @@ public class CodexTrackingData extends SavedData {
 
     private static final String DATA_NAME = RpgLoreMod.MODID + "_codex";
 
+    /** Upper bound on banked spare copies per book — guards against unbounded NBT growth from farming. */
+    private static final int MAX_SPARE_COPIES = 99;
+
     @Nullable
     private static CodexTrackingData instance;
 
@@ -57,6 +60,8 @@ public class CodexTrackingData extends SavedData {
         PlayerCodexData data = playerCodexes.get(player);
         if (data == null) return false;
         boolean removed = data.collectedBookIds.remove(bookId);
+        // Removing the master also discards any banked spare copies for that book
+        if (data.bookCopies.remove(bookId) != null) removed = true;
         if (removed) setDirty();
         return removed;
     }
@@ -65,6 +70,60 @@ public class CodexTrackingData extends SavedData {
         PlayerCodexData data = playerCodexes.get(player);
         if (data == null) return Set.of();
         return Set.copyOf(data.collectedBookIds);
+    }
+
+    // --- Spare copy bank ---
+    //
+    // The first absorbed copy of a book becomes a permanent, readable "master"
+    // (tracked in collectedBookIds). Every additional duplicate absorbed is
+    // banked here as a spare copy. Extraction draws this bank down; the master
+    // itself is never extractable.
+
+    /**
+     * @return the number of extractable spare copies banked for this book.
+     */
+    public int getCopies(UUID player, String bookId) {
+        PlayerCodexData data = playerCodexes.get(player);
+        if (data == null) return 0;
+        return data.bookCopies.getOrDefault(bookId, 0);
+    }
+
+    /**
+     * Banks one spare copy of a book (a duplicate the player absorbed).
+     */
+    public void addCopy(UUID player, String bookId) {
+        PlayerCodexData data = playerCodexes.computeIfAbsent(player, k -> new PlayerCodexData());
+        int current = data.bookCopies.getOrDefault(bookId, 0);
+        if (current >= MAX_SPARE_COPIES) return; // already at cap; ignore further duplicates
+        data.bookCopies.put(bookId, current + 1);
+        setDirty();
+    }
+
+    /**
+     * Consumes one banked spare copy (an extraction).
+     * @return true if a spare was available and consumed, false if the bank was empty
+     */
+    public boolean consumeCopy(UUID player, String bookId) {
+        PlayerCodexData data = playerCodexes.get(player);
+        if (data == null) return false;
+        int current = data.bookCopies.getOrDefault(bookId, 0);
+        if (current <= 0) return false;
+        if (current == 1) {
+            data.bookCopies.remove(bookId);
+        } else {
+            data.bookCopies.put(bookId, current - 1);
+        }
+        setDirty();
+        return true;
+    }
+
+    /**
+     * @return a snapshot of all banked spare copies for the player (bookId -> count).
+     */
+    public Map<String, Integer> getCopiesMap(UUID player) {
+        PlayerCodexData data = playerCodexes.get(player);
+        if (data == null) return Map.of();
+        return Map.copyOf(data.bookCopies);
     }
 
     public int getCollectedCount(UUID player) {
@@ -76,6 +135,7 @@ public class CodexTrackingData extends SavedData {
         PlayerCodexData data = playerCodexes.get(player);
         if (data != null) {
             data.collectedBookIds.clear();
+            data.bookCopies.clear();
             setDirty();
         }
     }
@@ -116,6 +176,7 @@ public class CodexTrackingData extends SavedData {
     public void pruneStaleEntries(Set<String> codexEligibleIds) {
         for (PlayerCodexData data : playerCodexes.values()) {
             data.collectedBookIds.retainAll(codexEligibleIds);
+            data.bookCopies.keySet().retainAll(codexEligibleIds);
         }
         setDirty();
     }
@@ -134,6 +195,13 @@ public class CodexTrackingData extends SavedData {
                 ListTag collected = playerTag.getList("collected", Tag.TAG_STRING);
                 for (int i = 0; i < collected.size(); i++) {
                     pData.collectedBookIds.add(collected.getString(i));
+                }
+
+                // Spare-copy bank (absent in pre-2.x.x saves -> empty map)
+                CompoundTag copies = playerTag.getCompound("copies");
+                for (String bookId : copies.getAllKeys()) {
+                    int count = copies.getInt(bookId);
+                    if (count > 0) pData.bookCopies.put(bookId, count);
                 }
 
                 pData.preventDuplicatePickup = playerTag.getBoolean("prevent_duplicates");
@@ -159,6 +227,13 @@ public class CodexTrackingData extends SavedData {
                 collected.add(StringTag.valueOf(bookId));
             }
             playerTag.put("collected", collected);
+
+            CompoundTag copies = new CompoundTag();
+            for (Map.Entry<String, Integer> copyEntry : pData.bookCopies.entrySet()) {
+                copies.putInt(copyEntry.getKey(), copyEntry.getValue());
+            }
+            playerTag.put("copies", copies);
+
             playerTag.putBoolean("prevent_duplicates", pData.preventDuplicatePickup);
             playerTag.putBoolean("has_codex", pData.hasEverReceivedCodex);
 
@@ -180,6 +255,8 @@ public class CodexTrackingData extends SavedData {
 
     private static class PlayerCodexData {
         final Set<String> collectedBookIds = new HashSet<>();
+        /** Extractable spare copies banked per book id (master copy not counted here). */
+        final Map<String, Integer> bookCopies = new HashMap<>();
         boolean preventDuplicatePickup = false;
         boolean hasEverReceivedCodex = false;
     }

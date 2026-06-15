@@ -11,7 +11,7 @@ A data-driven lore book mod for Minecraft Forge 1.20.1. Define custom books via 
 
 - **JSON-defined lore books** -- add, edit, or remove books without recompiling. Each `.json` file in the config folder becomes a lore book.
 - **Conditional mob drops** -- control which mobs drop which books based on entity type, biome, dimension, time of day, weather, Y-level, and more.
-- **Lore Codex** -- a soul-bound collection book that stores your lore books directly. New books go into the Codex on pickup (not your inventory). Browse, read, and copy collected books from a custom parchment-styled GUI.
+- **Lore Codex** -- a soul-bound collection book that stores your lore books directly. Books go into the Codex on pickup (not your inventory); duplicates are banked as extractable spare copies. Browse, read, and extract collected books from a custom parchment-styled GUI.
 - **Auto-generated title page** -- every lore book opens with a stylized title page showing the book's title (scaled up, bold, colored) and author (bold, colored), both centered on the page.
 - **Custom book GUI** -- lore books use a unique book texture distinct from vanilla written books.
 - **Tooltip styling** -- bold colored title, bold colored author, italic description, and generation label with automatic formatting.
@@ -121,13 +121,14 @@ Pages can be plain strings (auto-wrapped) or full JSON text components for advan
 
 The Lore Codex is a soul-bound item that stores and tracks your lore book collection.
 
-- **Books stored in the Codex** -- when you pick up a new lore book, it goes into the Codex instead of your inventory. The physical item is consumed and the book becomes accessible from the Codex GUI.
+- **Books stored in the Codex** -- when you pick up a lore book it always goes into the Codex instead of your inventory. The physical item is consumed and the book becomes accessible from the Codex GUI. A lore book only exists in physical form when it's dropped on the ground or extracted from the Codex.
+- **Banked spare copies** -- the first copy of a book becomes a permanent, readable *master* entry. Every additional duplicate you pick up is banked as a *spare copy* (shown as `C(n)` in the GUI, capped at 99 per book). Duplicates are absorbed with a distinct lower-pitch sound.
 - **Auto-granted** on first login (configurable)
 - **Soul-bound** -- kept on death, cannot be dropped
 - **Collection counter** -- shows how many books you've found vs. total available
 - **Browse & read** -- click any collected book to read it directly from the Codex
-- **Copy books** -- create a physical copy of any collected book into your inventory (generation incremented). Copies always go to your inventory.
-- **Duplicate prevention** -- toggle to block picking up lore books you've already collected
+- **Extract copies** -- pull a physical copy of a book into your inventory (generation incremented). Extraction draws down that book's banked spares and is blocked once none remain -- the master copy is never consumed.
+- **Duplicate handling toggle** -- *off* (default) absorbs duplicates into the spare bank; *on* leaves duplicate books on the ground instead of picking them up
 - **Curios support** -- equip the Codex in a dedicated "codex" Curios slot if the Curios mod is installed. All features work from either inventory or Curios slot.
 
 ## Commands

@@ -6,6 +6,7 @@ import com.mojang.brigadier.context.CommandContext;
 import com.mojang.brigadier.suggestion.SuggestionProvider;
 import com.rpglore.codex.CodexService;
 import com.rpglore.codex.CodexTrackingData;
+import com.rpglore.codex.LoreCodexItem;
 import com.rpglore.config.LoreBookRegistry;
 import com.rpglore.config.BooksConfigLoader;
 import com.rpglore.lore.LoreBookDefinition;
@@ -313,8 +314,13 @@ public final class RpgLoreCommands {
         Collection<ServerPlayer> targets = EntityArgument.getPlayers(ctx, "targets");
         int count = 0;
 
+        CodexService service = CodexService.get();
         for (ServerPlayer player : targets) {
             ItemStack codex = new ItemStack(ModItems.LORE_CODEX.get());
+            // Pre-sync the tooltip cache so a freshly given Codex shows the player's real counts
+            if (service != null) {
+                LoreCodexItem.syncItemNbt(codex, service.getTrackingData(), player.getUUID());
+            }
 
             if (!player.getInventory().add(codex)) {
                 ItemEntity drop = player.drop(codex, false);

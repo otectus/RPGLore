@@ -19,11 +19,12 @@ RPG Lore lets modpack makers and server owners add custom lore books to their wo
 
 ### Lore Codex
 - **Personal collection book** -- a soul-bound item that stores your lore books directly inside it.
-- **Books go into the Codex** -- when you pick up a new lore book, it's consumed from the world and stored in the Codex. No inventory clutter.
-- **Browsable GUI** -- custom parchment-styled screen with paginated book list, collection counter (n/N), and per-book Read and Copy actions.
-- **Copy mechanic** -- create a physical copy of any collected book into your inventory. Copies always go to your inventory with generation incremented.
+- **Books go into the Codex** -- when you pick up a lore book, it's consumed from the world and stored in the Codex. No inventory clutter. A book only exists in physical form when dropped on the ground or extracted from the Codex.
+- **Banked spare copies** -- the first copy of a book becomes a permanent readable master; every duplicate you pick up is banked as a spare copy (shown as `C(n)`, capped at 99 per book) and absorbed with a distinct lower-pitch sound.
+- **Browsable GUI** -- custom parchment-styled screen with paginated book list, collection counter (n/N), and per-book Read and Extract actions.
+- **Extract mechanic** -- pull a physical copy of a book into your inventory (generation incremented). Extraction draws down that book's banked spares and is blocked once none remain -- the master is never consumed.
 - **Soul-bound** -- granted on first login, kept on death, cannot be dropped.
-- **Duplicate prevention** -- toggle to block picking up lore books you've already collected.
+- **Duplicate handling toggle** -- off (default) absorbs duplicates into the spare bank; on leaves duplicate books on the ground.
 - **Curios API support** -- equip the Codex in a dedicated "codex" Curios slot. Soft dependency -- works without Curios installed.
 
 ### For Pack Makers

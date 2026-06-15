@@ -119,8 +119,10 @@ public class LoreCodexScreen extends Screen {
                 ModNetwork.sendToServer(new ServerboundCodexToggleDuplicatePacket());
             }).bounds(toggleX, toggleY, toggleSize, toggleSize)
               .tooltip(Tooltip.create(
-                      Component.literal("Pick-Up").withStyle(ChatFormatting.WHITE),
-                      Component.literal("Enable/Disable Automatic Pick-Up")))
+                      Component.literal("Duplicates").withStyle(ChatFormatting.WHITE),
+                      Component.literal("On: leave duplicate books on the ground")
+                              .append("\n")
+                              .append("Off: absorb duplicates as spare copies")))
               .build();
             addRenderableWidget(toggleButton);
         }
@@ -218,24 +220,32 @@ public class LoreCodexScreen extends Screen {
 
         // Action buttons for collected books (positioned at right edge)
         if (entry.collected()) {
-            // Copy label
+            int copyReserve = 0;
+            // Copy label, annotated with the banked spare count: extraction is gated on it
             if (data.allowCopy) {
-                String copyStr = "C";
+                int spares = entry.copies();
+                boolean hasSpares = spares > 0;
+                String copyStr = "C(" + spares + ")";
                 int copyW = this.font.width(copyStr) + 2;
                 int copyX = x + TEXT_WIDTH - copyW;
-                boolean hoverCopy = mouseX >= copyX && mouseX < copyX + copyW
+                boolean hoverCopy = hasSpares && mouseX >= copyX && mouseX < copyX + copyW
                         && mouseY >= y && mouseY < y + ENTRY_HEIGHT;
-                graphics.drawString(this.font, copyStr, copyX, y + 1,
-                        hoverCopy ? COLOR_COPY_HOVER : COLOR_COPY, false);
-                entryRegions.add(new EntryRegion(copyX, y, copyX + copyW, y + ENTRY_HEIGHT,
-                        entry.id(), EntryAction.COPY));
-                maxTitleWidth -= copyW + 4;
+                int copyColor = hasSpares
+                        ? (hoverCopy ? COLOR_COPY_HOVER : COLOR_COPY)
+                        : COLOR_UNCOLLECTED; // greyed out when no spares remain
+                graphics.drawString(this.font, copyStr, copyX, y + 1, copyColor, false);
+                if (hasSpares) {
+                    entryRegions.add(new EntryRegion(copyX, y, copyX + copyW, y + ENTRY_HEIGHT,
+                            entry.id(), EntryAction.COPY));
+                }
+                copyReserve = copyW + 4;
+                maxTitleWidth -= copyReserve;
             }
 
             // Read label
             String readStr = "Read";
             int readW = this.font.width(readStr);
-            int readX = x + TEXT_WIDTH - readW - (data.allowCopy ? this.font.width("C") + 6 : 0);
+            int readX = x + TEXT_WIDTH - readW - (copyReserve > 0 ? copyReserve + 2 : 0);
             boolean hoverRead = mouseX >= readX && mouseX < readX + readW
                     && mouseY >= y && mouseY < y + ENTRY_HEIGHT;
             graphics.drawString(this.font, readStr, readX, y + 1,
@@ -354,7 +364,8 @@ public class LoreCodexScreen extends Screen {
             String author,
             boolean collected,
             @Nullable String titleColor,
-            @Nullable String category
+            @Nullable String category,
+            int copies
     ) {}
 
     public record CodexScreenData(

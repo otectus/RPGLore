@@ -100,11 +100,12 @@ public class CodexEventHandler {
     }
 
     /**
-     * When a lore book is picked up:
-     * - If new and auto-collect is on: the book goes INTO the Codex (not inventory).
-     *   The item entity is consumed and the pickup is denied (book doesn't enter inventory).
-     * - If already collected and duplicate prevention is on: pickup is blocked entirely.
-     * - If already collected and duplicate prevention is off: book goes to inventory normally.
+     * When a lore book is picked up it always feeds into the Codex instead of the
+     * inventory (a book only exists in book form on the ground or once extracted):
+     * - New book: recorded as the permanent, readable master copy.
+     * - Duplicate of a collected book: banked as an extractable spare copy
+     *   (lower-pitch absorption sound), UNLESS "leave on ground" is enabled —
+     *   in which case the pickup is denied so the book stays on the ground.
      */
     @SubscribeEvent
     public static void onItemPickup(EntityItemPickupEvent event) {
@@ -129,22 +130,23 @@ public class CodexEventHandler {
         CodexTrackingData data = CodexTrackingData.getInstance();
         if (data == null) return;
 
-        // Already collected?
-        if (data.hasBook(serverPlayer.getUUID(), bookId)) {
-            // Duplicate prevention: block pickup entirely
-            if (data.isPreventDuplicates(serverPlayer.getUUID())) {
-                event.setCanceled(true);
-            }
-            // Otherwise: let it go to inventory normally (it's an extra physical copy)
-            return;
-        }
-
-        // NEW book: store it in the Codex instead of inventory.
         CodexService service = CodexService.get();
         if (service == null) return;
 
-        boolean added = service.collectBook(serverPlayer, bookId);
-        if (!added) return;
+        boolean duplicate = data.hasBook(serverPlayer.getUUID(), bookId);
+
+        if (duplicate) {
+            // "Leave on ground": deny the pickup, do not absorb (book stays in the world)
+            if (data.isPreventDuplicates(serverPlayer.getUUID())) {
+                event.setCanceled(true);
+                return;
+            }
+            // Otherwise bank it as a spare copy
+            service.bankDuplicate(serverPlayer, bookId);
+        } else {
+            // NEW book: record it as the permanent master copy
+            service.collectBook(serverPlayer, bookId);
+        }
 
         // Consume the item entity (destroy it from the world)
         event.getItem().discard();
@@ -157,6 +159,6 @@ public class CodexEventHandler {
         Optional<LoreBookDefinition> optDef = LoreBookRegistry.getById(bookId);
         String title = optDef.map(LoreBookDefinition::title).orElse(bookId);
         ModNetwork.sendToPlayer(
-                new ClientboundCodexCollectionEventPacket(title), serverPlayer);
+                new ClientboundCodexCollectionEventPacket(title, duplicate), serverPlayer);
     }
 }

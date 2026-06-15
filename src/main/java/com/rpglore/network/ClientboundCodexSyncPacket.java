@@ -48,7 +48,8 @@ public class ClientboundCodexSyncPacket {
                     def.author(),
                     collected.contains(def.id()),
                     def.titleColor(),
-                    def.category()
+                    def.category(),
+                    data.getCopies(playerUuid, def.id())
             ));
         }
 
@@ -84,6 +85,7 @@ public class ClientboundCodexSyncPacket {
             if (entry.titleColor() != null) {
                 buf.writeUtf(entry.titleColor());
             }
+            buf.writeVarInt(entry.copies());
             // author and category are not transmitted (not used by the UI)
         }
         buf.writeBoolean(preventDuplicates);
@@ -102,8 +104,9 @@ public class ClientboundCodexSyncPacket {
             String title = buf.readUtf();
             boolean collected = buf.readBoolean();
             String titleColor = buf.readBoolean() ? buf.readUtf() : null;
+            int copies = buf.readVarInt();
             // author and category not transmitted; fill with defaults
-            catalog.add(new LoreCodexScreen.CodexBookEntry(id, title, "", collected, titleColor, null));
+            catalog.add(new LoreCodexScreen.CodexBookEntry(id, title, "", collected, titleColor, null, copies));
         }
         boolean preventDuplicates = buf.readBoolean();
         int collectedCount = buf.readVarInt();

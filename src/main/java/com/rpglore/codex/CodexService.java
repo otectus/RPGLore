@@ -2,16 +2,23 @@ package com.rpglore.codex;
 
 import com.rpglore.RpgLoreMod;
 import com.rpglore.config.LoreBookRegistry;
+import com.rpglore.config.ServerConfig;
 import com.rpglore.data.LoreTrackingData;
+import com.rpglore.lore.LoreBookDefinition;
+import com.rpglore.lore.LoreBookItem;
 import com.rpglore.network.ClientboundCodexSyncPacket;
 import com.rpglore.network.ModNetwork;
 import com.rpglore.registry.ModItems;
+import net.minecraft.nbt.CompoundTag;
 import net.minecraft.server.MinecraftServer;
 import net.minecraft.server.level.ServerPlayer;
+import net.minecraft.sounds.SoundEvents;
+import net.minecraft.sounds.SoundSource;
 import net.minecraft.world.entity.item.ItemEntity;
 import net.minecraft.world.item.ItemStack;
 
 import javax.annotation.Nullable;
+import java.util.Optional;
 import java.util.UUID;
 
 /**
@@ -71,6 +78,54 @@ public final class CodexService {
             syncAll(player);
         }
         return added;
+    }
+
+    /**
+     * Banks one spare copy of an already-collected book (a duplicate the player
+     * absorbed). The book's master entry is untouched; only the extractable
+     * spare-copy count increases.
+     */
+    public void bankDuplicate(ServerPlayer player, String bookId) {
+        codexData.addCopy(player.getUUID(), bookId);
+        syncAll(player);
+    }
+
+    /** Outcome of an extraction attempt. */
+    public enum ExtractResult { SUCCESS, NO_COPIES, INVENTORY_FULL, DISABLED, INVALID }
+
+    /**
+     * Extracts one banked spare copy of a book into the player's inventory as a
+     * physical book. Consumes a spare from the bank (the master copy is never
+     * extractable) and resyncs so the UI reflects the new count.
+     */
+    public ExtractResult extractCopy(ServerPlayer player, String bookId) {
+        if (!ServerConfig.CODEX_ALLOW_COPY.get()) return ExtractResult.DISABLED;
+
+        UUID uuid = player.getUUID();
+        if (!codexData.hasBook(uuid, bookId)) return ExtractResult.INVALID;
+
+        Optional<LoreBookDefinition> optDef = LoreBookRegistry.getById(bookId);
+        if (optDef.isEmpty()) return ExtractResult.INVALID;
+
+        // Reject if inventory is full to avoid unpickable dropped copies
+        if (player.getInventory().getFreeSlot() == -1) return ExtractResult.INVENTORY_FULL;
+
+        // Draw down the spare bank; nothing to extract if empty
+        if (!codexData.consumeCopy(uuid, bookId)) return ExtractResult.NO_COPIES;
+
+        // Create a physical copy with generation incremented to mark it as a copy
+        ItemStack copy = LoreBookItem.createStack(optDef.get());
+        CompoundTag copyTag = copy.getOrCreateTag();
+        int newGen = Math.min(copyTag.getInt("generation") + 1, 3);
+        copyTag.putInt("generation", newGen);
+
+        player.getInventory().add(copy);
+
+        player.level().playSound(null, player.getX(), player.getY(), player.getZ(),
+                SoundEvents.BOOK_PAGE_TURN, SoundSource.PLAYERS, 0.5f, 1.0f);
+
+        syncAll(player);
+        return ExtractResult.SUCCESS;
     }
 
     /**

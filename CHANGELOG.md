@@ -1,5 +1,18 @@
 # Changelog
 
+## [2.1.0] - 2026-06-14
+
+### New Features
+- **Duplicate lore books are absorbed as banked spare copies** -- picking up a lore book always feeds it into the Codex instead of cluttering the inventory. The first copy becomes a permanent, readable **master** entry; every additional duplicate is **banked as a spare copy** (`CodexTrackingData.bookCopies`, persisted per book). A lore book now only exists in physical form when it is dropped on the ground or deliberately extracted from the Codex.
+- **Extraction is gated on the spare bank** -- the Codex "copy" action now draws down a banked spare and is blocked when none remain (the master is never consumed). The catalog shows the available spare count per book (`C(n)`) and greys the button at zero. Spare counts are capped at 99 per book to guard against unbounded save growth.
+- **Distinct duplicate absorption feedback** -- absorbing a book plays the absorption sound; duplicates use a lower-pitch variant and a separate "Spare copy stored" message so banking is audibly distinct from collecting a new entry.
+
+### Improvements
+- **Prevent-duplicates toggle repurposed to "leave on ground"** -- ON leaves duplicate books on the ground (unchanged from the old block behavior); OFF (default) absorbs them into the spare bank. UI tooltip and Codex item tooltip text updated to match.
+- **Extraction centralized in `CodexService.extractCopy`** -- the copy packet now routes through the service so the spare-count mutation resyncs SavedData, item NBT, and the client UI atomically (the old path bypassed `syncAll`, leaving the UI count stale).
+- **`/rpglore codex give` pre-syncs the tooltip cache** -- a freshly given Codex now shows the recipient's real collected/total counts instead of `0 / 0`.
+- **Removing a book also discards its banked spares** -- `/rpglore codex remove` and pruning now clear orphaned spare copies, keeping collection and copy banks consistent.
+
 ## [2.0.6] - 2026-04-16
 
 ### New Features
