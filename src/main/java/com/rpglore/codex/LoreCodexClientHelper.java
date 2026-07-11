@@ -1,8 +1,13 @@
 package com.rpglore.codex;
 
+import com.rpglore.config.ClientConfig;
 import com.rpglore.lore.LoreBookScreen;
+import net.minecraft.ChatFormatting;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.screens.Screen;
+import net.minecraft.network.chat.Component;
+import net.minecraft.sounds.SoundEvents;
+import net.minecraft.sounds.SoundSource;
 import net.minecraft.world.item.ItemStack;
 import net.minecraftforge.api.distmarker.Dist;
 import net.minecraftforge.api.distmarker.OnlyIn;
@@ -34,6 +39,32 @@ public final class LoreCodexClientHelper {
         // If a LoreCodexScreen is currently open, refresh it
         if (Minecraft.getInstance().screen instanceof LoreCodexScreen screen) {
             screen.refreshData(data);
+        }
+    }
+
+    /**
+     * Shows the collection notification / plays the collection sound for a book
+     * absorbed into the Codex, honoring the client display config.
+     */
+    public static void showCollectionEvent(String bookTitle, boolean duplicate) {
+        Minecraft mc = Minecraft.getInstance();
+        if (mc.player == null) return;
+
+        if (ClientConfig.CODEX_SHOW_NOTIFICATION.get()) {
+            String key = duplicate ? "rpg_lore.codex.duplicate_stored" : "rpg_lore.codex.collected";
+            mc.player.displayClientMessage(
+                    Component.translatable(key,
+                            Component.literal(bookTitle).withStyle(ChatFormatting.GOLD)),
+                    true);
+        }
+
+        if (ClientConfig.CODEX_PLAY_SOUND.get()) {
+            // Duplicates use a lower pitch to distinguish a banked spare from a new master
+            float pitch = duplicate ? 0.8f : 1.2f;
+            mc.player.level().playLocalSound(
+                    mc.player.getX(), mc.player.getY(), mc.player.getZ(),
+                    SoundEvents.ENCHANTMENT_TABLE_USE, SoundSource.PLAYERS,
+                    0.5f, pitch, false);
         }
     }
 

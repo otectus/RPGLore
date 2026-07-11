@@ -95,9 +95,15 @@ public class LoreCodexScreen extends Screen {
 
     public void refreshData(CodexScreenData data) {
         this.data = data;
-        applyFilter();
-        if (toggleButton != null) {
-            toggleButton.setMessage(getToggleLabel());
+        if (this.minecraft != null) {
+            // Rebuild all widgets so the toggle button appears/disappears (and its
+            // label updates) per the new data. The first sync of a session arrives
+            // AFTER the screen opened with empty data, so patching labels alone
+            // would leave the toggle missing until the screen is reopened.
+            this.rebuildWidgets();
+        } else {
+            // Not initialized yet; init() will build widgets from the new data
+            applyFilter();
         }
     }
 
@@ -160,7 +166,7 @@ public class LoreCodexScreen extends Screen {
         int y = textTop;
 
         // Title
-        Component title = Component.literal("Lore Codex").withStyle(
+        Component title = Component.translatable("rpg_lore.codex.title").withStyle(
                 Style.EMPTY.withBold(true).withColor(TextColor.fromRgb(COLOR_TITLE)));
         int titleWidth = this.font.width(title);
         int parchCenterX = guiLeft + PARCHMENT_X + PARCHMENT_WIDTH / 2;
@@ -243,7 +249,7 @@ public class LoreCodexScreen extends Screen {
             }
 
             // Read label
-            String readStr = "Read";
+            String readStr = Component.translatable("rpg_lore.codex.read").getString();
             int readW = this.font.width(readStr);
             int readX = x + TEXT_WIDTH - readW - (copyReserve > 0 ? copyReserve + 2 : 0);
             boolean hoverRead = mouseX >= readX && mouseX < readX + readW
@@ -270,7 +276,7 @@ public class LoreCodexScreen extends Screen {
             titleComp = Component.literal(entry.title())
                     .withStyle(Style.EMPTY.withColor(TextColor.fromRgb(COLOR_UNCOLLECTED)));
         } else {
-            titleComp = Component.literal("???")
+            titleComp = Component.translatable("rpg_lore.codex.uncollected")
                     .withStyle(Style.EMPTY.withItalic(true).withColor(TextColor.fromRgb(COLOR_UNCOLLECTED)));
         }
 

@@ -70,7 +70,9 @@ public class RpgLoreMod {
     private void onBuildCreativeTabContents(BuildCreativeModeTabContentsEvent event) {
         if (event.getTabKey() == CreativeModeTabs.TOOLS_AND_UTILITIES) {
             event.accept(ModItems.LORE_BOOK);
-            if (ServerConfig.CODEX_ENABLED.get()) {
+            // Server config may not be loaded yet if tabs build outside a world;
+            // reading an unloaded config value throws, so default to showing the Codex
+            if (!ServerConfig.SPEC.isLoaded() || ServerConfig.CODEX_ENABLED.get()) {
                 event.accept(ModItems.LORE_CODEX);
             }
         }

@@ -14,6 +14,7 @@ import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.world.entity.player.Inventory;
 import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.item.ItemStack;
+import net.minecraft.world.level.GameRules;
 import net.minecraftforge.event.entity.item.ItemTossEvent;
 import net.minecraftforge.event.entity.living.LivingDropsEvent;
 import net.minecraftforge.event.entity.player.EntityItemPickupEvent;
@@ -37,26 +38,33 @@ public class CodexEventHandler {
         if (!event.isWasDeath()) return;
         if (!ServerConfig.CODEX_ENABLED.get() || !ServerConfig.CODEX_SOULBOUND.get()) return;
 
+        // With keepInventory, vanilla (and Curios) already carried everything over;
+        // restoring on top of that would duplicate the Codex.
+        if (event.getEntity().level().getGameRules().getBoolean(GameRules.RULE_KEEPINVENTORY)) return;
+        if (!LoreCodexItem.findCodex(event.getEntity()).isEmpty()) return;
+
         event.getOriginal().reviveCaps();
 
         try {
+            // onPlayerDrops parked the Codex back in the dead player's inventory
             Inventory original = event.getOriginal().getInventory();
             Inventory newInv = event.getEntity().getInventory();
-            boolean restored = false;
 
-            // Check main inventory first
             for (int i = 0; i < original.getContainerSize(); i++) {
                 ItemStack stack = original.getItem(i);
                 if (stack.getItem() instanceof LoreCodexItem) {
-                    newInv.setItem(i, stack.copy());
                     original.setItem(i, ItemStack.EMPTY);
-                    restored = true;
-                    break;
+                    if (!newInv.add(stack)) {
+                        RpgLoreMod.LOGGER.warn("Failed to restore Codex to new inventory for {}",
+                                event.getEntity().getName().getString());
+                    }
+                    return;
                 }
             }
 
-            // Check Curios slots only if no inventory Codex was found
-            if (!restored && CuriosCompat.isLoaded()) {
+            // Fallback: Codex still sitting in the dead player's Curios slots
+            // (e.g. another mod suppressed the curio drop)
+            if (CuriosCompat.isLoaded()) {
                 ItemStack curioCodex = CuriosCompat.findCodexInCurios(event.getOriginal());
                 if (!curioCodex.isEmpty()) {
                     if (!newInv.add(curioCodex.copy())) {
@@ -72,10 +80,17 @@ public class CodexEventHandler {
 
     @SubscribeEvent
     public static void onPlayerDrops(LivingDropsEvent event) {
-        if (!(event.getEntity() instanceof Player)) return;
+        if (!(event.getEntity() instanceof Player player)) return;
         if (!ServerConfig.CODEX_ENABLED.get() || !ServerConfig.CODEX_SOULBOUND.get()) return;
 
-        event.getDrops().removeIf(drop -> drop.getItem().getItem() instanceof LoreCodexItem);
+        // By the time this fires, the dying player's inventory has already been
+        // emptied into the drops list. Removing the Codex drop without putting it
+        // somewhere would delete it — park it back in the dead player's (now empty)
+        // inventory, where onPlayerClone picks it up for the respawned player.
+        event.getDrops().removeIf(drop -> {
+            ItemStack stack = drop.getItem();
+            return stack.getItem() instanceof LoreCodexItem && player.getInventory().add(stack);
+        });
     }
 
     @SubscribeEvent
@@ -90,13 +105,19 @@ public class CodexEventHandler {
 
     @SubscribeEvent
     public static void onPlayerLogin(PlayerEvent.PlayerLoggedInEvent event) {
-        if (!ServerConfig.CODEX_ENABLED.get() || !ServerConfig.CODEX_GRANT_ON_FIRST_JOIN.get()) return;
+        if (!ServerConfig.CODEX_ENABLED.get()) return;
         if (!(event.getEntity() instanceof ServerPlayer serverPlayer)) return;
 
         CodexService service = CodexService.get();
         if (service == null) return;
 
-        service.grantCodex(serverPlayer);
+        if (ServerConfig.CODEX_GRANT_ON_FIRST_JOIN.get()) {
+            service.grantCodex(serverPlayer);
+        }
+
+        // Warm the client's Codex cache so the first open of the session shows the
+        // real collection (and its toggle button) instead of empty placeholder data
+        service.resyncPlayer(serverPlayer);
     }
 
     /**

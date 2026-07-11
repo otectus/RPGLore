@@ -1,9 +1,10 @@
 package com.rpglore.network;
 
 import com.rpglore.codex.LoreCodexClientHelper;
-import net.minecraft.nbt.CompoundTag;
 import net.minecraft.network.FriendlyByteBuf;
 import net.minecraft.world.item.ItemStack;
+import net.minecraftforge.api.distmarker.Dist;
+import net.minecraftforge.fml.DistExecutor;
 import net.minecraftforge.network.NetworkEvent;
 
 import java.util.function.Supplier;
@@ -25,9 +26,9 @@ public class ClientboundCodexOpenBookPacket {
     }
 
     public void handle(Supplier<NetworkEvent.Context> ctx) {
-        ctx.get().enqueueWork(() -> {
-            LoreCodexClientHelper.openBookFromCodex(bookStack);
-        });
+        ctx.get().enqueueWork(() ->
+                DistExecutor.unsafeRunWhenOn(Dist.CLIENT,
+                        () -> () -> LoreCodexClientHelper.openBookFromCodex(bookStack)));
         ctx.get().setPacketHandled(true);
     }
 }

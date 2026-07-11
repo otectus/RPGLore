@@ -35,7 +35,7 @@ public class LoreCodexItem extends Item {
 
     @Override
     public Component getName(ItemStack stack) {
-        return Component.literal("Lore Codex").withStyle(
+        return Component.translatable(this.getDescriptionId(stack)).withStyle(
                 Style.EMPTY.withBold(true).withColor(ChatFormatting.DARK_PURPLE));
     }
 

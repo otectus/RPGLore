@@ -196,6 +196,11 @@ cd RPGLore
 
 The compiled JAR will be in `build/libs/`.
 
+> **Note:** Gradle itself must run on JDK 17 — newer JDKs are not supported
+> by this Gradle/ForgeGradle version. If your system default is newer, point
+> Gradle at a JDK 17 install, e.g. in `~/.gradle/gradle.properties`:
+> `org.gradle.java.home=/path/to/jdk-17`
+
 ### Development
 
 ```bash

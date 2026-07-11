@@ -1,0 +1,17 @@
+{
+  "homepage": "https://github.com/otectus/RPGLore",
+  "promos": {
+    "1.20.1-latest": "2.1.1",
+    "1.20.1-recommended": "2.1.1"
+  },
+  "1.20.1": {
+    "2.1.1": "Critical fix: soulbound Codex was destroyed on death. Fixed Curios codex slot never being assigned, duplicate-prevention toggle missing on first Codex open, keepInventory duplication, and hardcoded English bypassing translations. See CHANGELOG.md.",
+    "2.1.0": "Duplicate lore books are absorbed as banked spare copies; extraction draws down the spare bank.",
+    "2.0.6": "Lore Codex storable in Chiseled Bookshelves and placeable on Lecterns.",
+    "2.0.5": "Chiseled Bookshelf and Lectern support for lore books; command output localization.",
+    "2.0.4": "Critical fixes: first-join grant with full inventory, maxBooksPerKill enforcement, Codex count drift; centralized CodexService.",
+    "2.0.1": "Lore Codex feature, Curios support, 60-language localization, updated textures.",
+    "1.1.0": "Fixed copy tracking and page navigation; persistent SavedData tracking.",
+    "1.0.0": "Initial release."
+  }
+}

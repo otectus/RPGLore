@@ -7,6 +7,8 @@ import com.rpglore.config.LoreBookRegistry;
 import com.rpglore.config.ServerConfig;
 import com.rpglore.lore.LoreBookDefinition;
 import net.minecraft.network.FriendlyByteBuf;
+import net.minecraftforge.api.distmarker.Dist;
+import net.minecraftforge.fml.DistExecutor;
 import net.minecraftforge.network.NetworkEvent;
 
 import java.util.*;
@@ -124,7 +126,8 @@ public class ClientboundCodexSyncPacket {
                     catalog, preventDuplicates, collectedCount, totalCount,
                     allowCopy, allowDuplicatePrevention, revealUncollectedNames
             );
-            LoreCodexClientHelper.updateCachedData(screenData);
+            DistExecutor.unsafeRunWhenOn(Dist.CLIENT,
+                    () -> () -> LoreCodexClientHelper.updateCachedData(screenData));
         });
         ctx.get().setPacketHandled(true);
     }

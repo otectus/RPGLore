@@ -1,5 +1,21 @@
 # Changelog
 
+## [2.1.1] - 2026-07-11
+
+### Critical Bug Fixes
+- **Soulbound Codex no longer destroyed on death** -- by the time `LivingDropsEvent` fires, the dying player's inventory has already been emptied into the drops list, so removing the Codex from the drops deleted it outright; the old `PlayerEvent.Clone` handler then scanned an already-empty inventory. The Codex is now parked back in the dead player's inventory during the drops event and restored to the respawned player from there. (Soulbound persistence previously only *appeared* to work with `keepInventory` on, where it does nothing.)
+- **Curios "codex" slot is now actually assigned to players** -- `data/rpg_lore/curios/entities/codex.json` listed the player entity but omitted the required `"slots"` array, so the dedicated Codex slot never attached and the Curios integration was inert.
+
+### Bug Fixes
+- **Duplicate-prevention toggle now appears on the first Codex open** -- the first open of a session built the screen from empty placeholder data (the server sync arrives only after the same right-click that opens the screen), and the sync handler patched labels without creating widgets. `refreshData` now rebuilds the widget set via vanilla `rebuildWidgets()`, and the server additionally resyncs Codex data on every login so the first open shows the real collection immediately.
+- **No more Codex duplication with `keepInventory`** -- the death-restore handler now skips entirely when `keepInventory` is on (vanilla and Curios already carry everything over) and when the respawned player already has a Codex, closing a duplication path for Curios-equipped Codices.
+- **Localization actually used** -- the Codex item name and the Codex screen's title, "Read" action, and "???" placeholder were hardcoded in English, bypassing the translations shipped in all 60 language files; they now use their existing translation keys.
+- **Creative tab no longer risks reading unloaded server config** -- guarded `codex.enabled` access with `SPEC.isLoaded()` when tab contents build outside a world.
+
+### Improvements
+- **Dedicated-server classloading safety** -- clientbound packet handlers no longer reference client-only classes directly; collection-event handling moved into the `@OnlyIn(CLIENT)` `LoreCodexClientHelper` and all clientbound handlers route through `DistExecutor`, matching the pattern used elsewhere in the mod.
+- **Line-ending normalization** -- added `.gitattributes` enforcing LF for text files (a stray CRLF conversion had previously corrupted the working tree, including the `gradlew` launcher, which must be LF to run on Linux/macOS).
+
 ## [2.1.0] - 2026-06-14
 
 ### New Features
