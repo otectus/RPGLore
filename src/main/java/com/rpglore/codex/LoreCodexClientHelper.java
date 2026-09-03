@@ -37,13 +37,27 @@ public final class LoreCodexClientHelper {
     @Nullable
     private static LoreCodexScreen.CodexScreenData cachedData;
 
+    /** Search/filter/sort/page the player last left the Codex on. */
+    private static CodexViewState lastViewState = CodexViewState.DEFAULT;
+
     public static void openCodexScreen() {
-        if (cachedData != null) {
-            Minecraft.getInstance().setScreen(new LoreCodexScreen(cachedData));
-        } else {
-            // No data yet; open with empty data, will refresh when sync arrives
-            Minecraft.getInstance().setScreen(new LoreCodexScreen(LoreCodexScreen.CodexScreenData.empty()));
-        }
+        LoreCodexScreen.CodexScreenData data = cachedData != null
+                ? cachedData
+                // No data yet; open with empty data, will refresh when sync arrives
+                : LoreCodexScreen.CodexScreenData.empty();
+        Minecraft.getInstance().setScreen(new LoreCodexScreen(data, viewStateForOpen()));
+    }
+
+    /** Stores the view state a closing (or book-opening) Codex screen was left in. */
+    public static void saveViewState(CodexViewState state) {
+        lastViewState = state;
+    }
+
+    private static CodexViewState viewStateForOpen() {
+        if (ClientConfig.CODEX_REMEMBER_SEARCH.get()) return lastViewState;
+        // The rest of the view (category, filter, sort, page) is always remembered;
+        // only the typed query is dropped when the player asked for that.
+        return lastViewState.withQuery("");
     }
 
     public static void updateCatalog(int revision, List<CodexCatalogEntry> entries) {
@@ -141,7 +155,13 @@ public final class LoreCodexClientHelper {
         mc.setScreen(new LoreBookScreen(bookStack) {
             @Override
             public void onClose() {
-                mc.setScreen(parentScreen);
+                if (parentScreen instanceof LoreCodexScreen) {
+                    // Reopen rather than reuse: the read flag just changed, so the
+                    // Codex must rebuild from the fresh sync, on the remembered view
+                    openCodexScreen();
+                } else {
+                    mc.setScreen(parentScreen);
+                }
             }
         });
     }

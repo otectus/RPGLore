@@ -21,6 +21,10 @@ public class ServerConfig {
     public static final ForgeConfigSpec.BooleanValue CODEX_ALLOW_COPY;
     public static final ForgeConfigSpec.BooleanValue CODEX_ALLOW_DUPLICATE_PREVENTION;
     public static final ForgeConfigSpec.BooleanValue CODEX_REVEAL_UNCOLLECTED_NAMES;
+    public static final ForgeConfigSpec.BooleanValue CODEX_ENABLE_DISCOVERY_HINTS;
+
+    // --- Reader settings ---
+    public static final ForgeConfigSpec.BooleanValue READER_ALLOW_RUN_COMMAND_CLICKS;
 
     static {
         ForgeConfigSpec.Builder builder = new ForgeConfigSpec.Builder();
@@ -60,7 +64,10 @@ public class ServerConfig {
                 .define("enabled", true);
 
         CODEX_SOULBOUND = builder
-                .comment("If true, the Codex is kept on death and cannot be dropped/traded")
+                .comment("If true, the Codex survives death: it is stashed away on death (from the",
+                        "inventory or a Curios slot) and restored on respawn, or on the next login",
+                        "if the player disconnects first. Has no effect when keepInventory is on,",
+                        "since the Codex is never dropped in that case.")
                 .define("soulbound", true);
 
         CODEX_AUTO_COLLECT = builder
@@ -72,16 +79,31 @@ public class ServerConfig {
                 .define("grantOnFirstJoin", true);
 
         CODEX_ALLOW_COPY = builder
-                .comment("If true, players can copy books from the Codex (consumes a physical copy)")
+                .comment("Allow players to extract a banked spare copy from the Codex as a physical",
+                        "book. The Codex's permanent entry is never consumed.")
                 .define("allowCopy", true);
 
         CODEX_ALLOW_DUPLICATE_PREVENTION = builder
-                .comment("If true, the duplicate prevention toggle is available in the Codex UI")
+                .comment("Allow players to choose duplicate handling: store duplicate pickups as",
+                        "spare copies (default) or leave duplicates on the ground.")
                 .define("allowDuplicatePrevention", true);
 
         CODEX_REVEAL_UNCOLLECTED_NAMES = builder
                 .comment("If true, uncollected book names are shown in the Codex. If false, they appear as '???'")
                 .define("revealUncollectedNames", false);
+
+        CODEX_ENABLE_DISCOVERY_HINTS = builder
+                .comment("If true, uncollected entries may show the discovery hint from their book definition")
+                .define("enableDiscoveryHints", true);
+
+        builder.pop();
+
+        builder.comment("Lore book reader settings").push("reader");
+
+        READER_ALLOW_RUN_COMMAND_CLICKS = builder
+                .comment("Allow run_command click events inside lore book text. Off by default",
+                        "because lore packs are third-party content.")
+                .define("allowRunCommandClicks", false);
 
         builder.pop();
 

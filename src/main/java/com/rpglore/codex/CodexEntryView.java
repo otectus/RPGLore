@@ -1,8 +1,5 @@
 package com.rpglore.codex;
 
-import net.minecraftforge.api.distmarker.Dist;
-import net.minecraftforge.api.distmarker.OnlyIn;
-
 import javax.annotation.Nullable;
 import java.util.List;
 import java.util.Locale;
@@ -13,9 +10,9 @@ import java.util.Locale;
  * copies of the searchable fields so a later search/filter pass never lowercases in
  * the render loop.
  *
- * <p>Client only: the server never builds these.
+ * <p>Only the client builds these, but the type itself is common-safe on purpose:
+ * {@link CodexEntryFilter} operates on it and is unit tested outside a client.
  */
-@OnlyIn(Dist.CLIENT)
 public record CodexEntryView(
         CodexCatalogEntry entry,
         boolean collected,
@@ -56,5 +53,25 @@ public record CodexEntryView(
     @Nullable
     public String titleColor() {
         return entry.titleColor();
+    }
+
+    /** Display author, or "" when the server redacted it. */
+    public String author() {
+        return entry.author() == null ? "" : entry.author();
+    }
+
+    @Nullable
+    public String category() {
+        return entry.category();
+    }
+
+    @Nullable
+    public String discoveryHint() {
+        return entry.discoveryHint();
+    }
+
+    /** True when the server withheld this entry's name; it must never match a search. */
+    public boolean hidden() {
+        return entry.hidden();
     }
 }

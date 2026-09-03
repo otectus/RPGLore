@@ -122,13 +122,18 @@ Pages can be plain strings (auto-wrapped) or full JSON text components for advan
 The Lore Codex is a soul-bound item that stores and tracks your lore book collection.
 
 - **Books stored in the Codex** -- when you pick up a lore book it always goes into the Codex instead of your inventory. The physical item is consumed and the book becomes accessible from the Codex GUI. A lore book only exists in physical form when it's dropped on the ground or extracted from the Codex.
-- **Banked spare copies** -- the first copy of a book becomes a permanent, readable *master* entry. Every additional duplicate you pick up is banked as a *spare copy* (shown as `C(n)` in the GUI, capped at 99 per book). Duplicates are absorbed with a distinct lower-pitch sound.
+- **Banked spare copies** -- the first copy of a book becomes a permanent, readable *master* entry. Every additional duplicate you pick up is banked as a *spare copy* (shown as `×n` in the GUI, capped at 99 per book). Duplicates are absorbed with a distinct lower-pitch sound.
 - **Auto-granted** on first login (configurable)
 - **Soul-bound** -- kept on death, cannot be dropped
-- **Collection counter** -- shows how many books you've found vs. total available
-- **Browse & read** -- click any collected book to read it directly from the Codex
-- **Extract copies** -- pull a physical copy of a book into your inventory (generation incremented). Extraction draws down that book's banked spares and is blocked once none remain -- the master copy is never consumed.
-- **Duplicate handling toggle** -- *off* (default) absorbs duplicates into the spare bank; *on* leaves duplicate books on the ground instead of picking them up
+- **Browse & read** -- open the Codex GUI to browse your collected books. The collection counter shows how many books you've found vs. total available in the current category.
+- **Search** -- live-search across book titles, authors, and categories. Press Ctrl+F to focus the search box; hidden uncollected names cannot be matched by searches.
+- **Organize by category** -- cycle through All Categories, individual categories, or Uncategorized books; the progress counter reflects your completion in the chosen category.
+- **Filter and sort** -- filter by All, Collected, Unread, Favorites, or Missing books. Sort by Default (unread first), Title, Category, or Recently found.
+- **Unread markers and favorites** -- collected books show an unread dot when not yet read (toggleable in client config); mark any book as a favorite with a clickable star, persisted server-side and across sessions.
+- **Extract copies** -- pull a physical copy of a book into your inventory (generation incremented). Extraction draws down that book's banked spares and is blocked once none remain -- the master copy is never consumed. Spare count shown as `×n` with a copy icon; greyed and disabled when no spares are available.
+- **Duplicate handling** -- configure whether duplicate pickups are stored as spare copies (default) or left on the ground. Toggle via the button in the Codex GUI.
+- **Keyboard navigation** -- press Esc to close search or screen; use arrow keys to page through the list or select rows; press Enter to open a selected book. After closing a book, you return to the Codex with your previous search, category, filter, sort, and selection preserved.
+- **"Open Lore Codex" keybind** -- unbound by default, this optional hotkey opens the Codex browser when you carry the Codex in your inventory or Curios slot.
 - **Curios support** -- equip the Codex in a dedicated "codex" Curios slot if the Curios mod is installed. All features work from either inventory or Curios slot.
 
 ## Commands
@@ -169,8 +174,15 @@ The Lore Codex is a soul-bound item that stores and tracks your lore book collec
 | `autoCollect` | `true` | Auto-register new books in the Codex on pickup |
 | `grantOnFirstJoin` | `true` | Give players a Codex on first login |
 | `allowCopy` | `true` | Allow copying books from the Codex |
-| `allowDuplicatePrevention` | `true` | Allow the duplicate prevention toggle |
+| `allowDuplicatePrevention` | `true` | Allow the duplicate handling toggle |
 | `revealUncollectedNames` | `false` | Show uncollected book names (vs. "???") |
+| `enableDiscoveryHints` | `true` | Reserved for discovery hints on uncollected entries. Books cannot define hints yet, so this currently has no effect. |
+
+### Reader Settings
+
+| Setting | Default | Description |
+|---------|---------|-------------|
+| `allowRunCommandClicks` | `false` | Allow run_command click events inside lore book text |
 
 ## Client Configuration
 
@@ -181,6 +193,8 @@ The Lore Codex is a soul-bound item that stores and tracks your lore book collec
 | `showLoreIdInTooltip` | `false` | Show internal lore_id in tooltip (for pack authors) |
 | `showCollectionNotification` | `true` | Show action bar message on new collection |
 | `playCollectionSound` | `true` | Play sound on new collection |
+| `rememberSearch` | `true` | Keep Codex search text when closing and reopening the screen |
+| `showUnreadMarkers` | `true` | Show a dot indicator next to collected books not yet read |
 
 ## Supported Languages
 

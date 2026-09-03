@@ -47,7 +47,11 @@ public class ModNetwork {
                 .consumerMainThread(ClientboundCodexCollectionEventPacket::handle)
                 .add();
 
-        // id 4: reserved for ClientboundCodexOpenScreenPacket (Phase 3 keybind)
+        INSTANCE.messageBuilder(ClientboundCodexOpenScreenPacket.class, 4, NetworkDirection.PLAY_TO_CLIENT)
+                .encoder(ClientboundCodexOpenScreenPacket::encode)
+                .decoder(ClientboundCodexOpenScreenPacket::decode)
+                .consumerMainThread(ClientboundCodexOpenScreenPacket::handle)
+                .add();
 
         INSTANCE.messageBuilder(ServerboundCodexOpenBookPacket.class, 5, NetworkDirection.PLAY_TO_SERVER)
                 .encoder(ServerboundCodexOpenBookPacket::encode)
@@ -73,7 +77,11 @@ public class ModNetwork {
                 .consumerMainThread(ServerboundCodexSetDuplicateModePacket::handle)
                 .add();
 
-        // id 9: reserved for ServerboundOpenCodexPacket (Phase 3 keybind)
+        INSTANCE.messageBuilder(ServerboundOpenCodexPacket.class, 9, NetworkDirection.PLAY_TO_SERVER)
+                .encoder(ServerboundOpenCodexPacket::encode)
+                .decoder(ServerboundOpenCodexPacket::decode)
+                .consumerMainThread(ServerboundOpenCodexPacket::handle)
+                .add();
     }
 
     public static <MSG> void sendToServer(MSG msg) {

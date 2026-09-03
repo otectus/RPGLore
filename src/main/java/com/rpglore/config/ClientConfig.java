@@ -10,6 +10,8 @@ public class ClientConfig {
     // --- Codex display settings ---
     public static final ForgeConfigSpec.BooleanValue CODEX_SHOW_NOTIFICATION;
     public static final ForgeConfigSpec.BooleanValue CODEX_PLAY_SOUND;
+    public static final ForgeConfigSpec.BooleanValue CODEX_REMEMBER_SEARCH;
+    public static final ForgeConfigSpec.BooleanValue CODEX_SHOW_UNREAD_MARKERS;
 
     static {
         ForgeConfigSpec.Builder builder = new ForgeConfigSpec.Builder();
@@ -31,6 +33,14 @@ public class ClientConfig {
         CODEX_PLAY_SOUND = builder
                 .comment("Play a sound when a new book is collected into the Codex")
                 .define("playCollectionSound", true);
+
+        CODEX_REMEMBER_SEARCH = builder
+                .comment("Keep the Codex search text when the screen is closed and reopened")
+                .define("rememberSearch", true);
+
+        CODEX_SHOW_UNREAD_MARKERS = builder
+                .comment("Show a dot next to collected books that have not been read yet")
+                .define("showUnreadMarkers", true);
 
         builder.pop();
 

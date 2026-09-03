@@ -5,6 +5,13 @@
 ### New Features
 - **Pack validation command** -- `/rpglore validate` and `/rpglore validate <book_id>` (OP level 2) re-check definitions without reloading; messages logged to server, with summary in chat (bulk) or all messages in chat (single-book)
 - **Rich validation diagnostics** -- lore book parsing now produces structured validation reports with severity levels, JSON path, source position, and helpful suggestions; strict JSON first, lenient-mode fallback with warning
+- **Codex search box** -- search across book titles, authors, and categories with live filtering; press Ctrl+F to focus the search box; hidden uncollected names cannot be matched by queries
+- **Category and filter cycles** -- browse by All Categories, per-category, or Uncategorized; show All, Collected, Unread, Favorites, or Missing books
+- **Sorting options** -- sort by Default (unread first), Title, Category, or Recently found
+- **Unread markers and favorites** -- collected books show an unread dot (toggleable with `codex_display.showUnreadMarkers`) and clickable star icon; favorite status persists server-side
+- **Spare copy display** -- duplicates shown as `×n` with a copy icon (greyed when none remain); replaced the old `C(n)` notation
+- **Entry tooltips and keyboard navigation** -- hover to see collected book details and category; press Esc to close/exit search, arrow keys to page or select rows, Enter to open selected book
+- **"Open Lore Codex" keybind** -- new unbound-by-default key opens the Codex browser from inventory or Curios slot (server verifies the player carries the item)
 
 ### Improvements
 - **/rpglore reload now reports changes** -- displays loaded/added/changed/removed/warnings/errors counts; reports how many definitions were skipped due to parse errors
@@ -14,6 +21,10 @@
 - **Reduced Codex network traffic** -- network protocol version 3 sends the Codex catalog when the server's catalog revision changes or when a newly collected book switches from hidden to revealed; otherwise only the compact per-player state is sent.
 - **Opening a Codex book now marks it read** -- opening a book from the Codex records your read state immediately.
 - **Added automated regression tests** -- Codex collection and spare-copy logic now covered by server-side tests (JUnit for data parsing and migration, Forge GameTests for gameplay behavior). Run with `./gradlew runGameTestServer`; Curios is excluded from the test environment.
+- **Duplicate handling renamed** -- replaced "duplicate prevention" terminology with "duplicates" control offering two modes: store as spare copies (default, off) or leave on ground (on)
+- **New server config options** -- `reader.allowRunCommandClicks` (default false) permits run_command click events in lore book text
+- **New client config options** -- `codex_display.rememberSearch` (default true) persists search text across Codex opens; `codex_display.showUnreadMarkers` (default true) toggles the unread dot indicator
+- **Return-to-Codex behavior** -- closing a book reader returns to the Codex screen with the same search, category, filter, sort, page, and keyboard selection preserved
 
 ## [2.1.2] - 2026-09-03
 

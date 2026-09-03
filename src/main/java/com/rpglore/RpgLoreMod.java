@@ -3,6 +3,7 @@ package com.rpglore;
 import com.rpglore.codex.CodexEventHandler;
 import com.rpglore.codex.CodexService;
 import com.rpglore.codex.CodexTrackingData;
+import com.rpglore.codex.LoreCodexKeyHandler;
 import com.rpglore.command.RpgLoreCommands;
 import com.rpglore.config.BooksConfigLoader;
 import com.rpglore.config.ClientConfig;
@@ -17,6 +18,7 @@ import com.rpglore.registry.ModItems;
 import com.mojang.logging.LogUtils;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.world.item.CreativeModeTabs;
+import net.minecraftforge.api.distmarker.Dist;
 import net.minecraftforge.common.MinecraftForge;
 import net.minecraftforge.event.BuildCreativeModeTabContentsEvent;
 import net.minecraftforge.event.RegisterCommandsEvent;
@@ -24,6 +26,7 @@ import net.minecraftforge.event.RegisterGameTestsEvent;
 import net.minecraftforge.event.server.ServerStartingEvent;
 import net.minecraftforge.event.server.ServerStoppedEvent;
 import net.minecraftforge.eventbus.api.IEventBus;
+import net.minecraftforge.fml.DistExecutor;
 import net.minecraftforge.fml.ModLoadingContext;
 import net.minecraftforge.fml.common.Mod;
 import net.minecraftforge.fml.config.ModConfig;
@@ -65,6 +68,10 @@ public class RpgLoreMod {
 
         // Allow LoreBookItem to be placed in vanilla lecterns
         MinecraftForge.EVENT_BUS.register(LoreBookLecternHandler.class);
+
+        // Client-only keybind; the handler class must never load on a dedicated server
+        DistExecutor.unsafeRunWhenOn(Dist.CLIENT,
+                () -> () -> LoreCodexKeyHandler.register(modEventBus));
 
         LOGGER.info("RPG Lore initializing");
     }

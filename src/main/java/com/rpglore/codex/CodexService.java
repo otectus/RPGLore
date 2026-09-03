@@ -341,8 +341,7 @@ public final class CodexService {
                 ServerConfig.CODEX_ALLOW_COPY.get(),
                 ServerConfig.CODEX_ALLOW_DUPLICATE_PREVENTION.get(),
                 ServerConfig.CODEX_REVEAL_UNCOLLECTED_NAMES.get(),
-                // Phase 3 adds the config key that gates run_command click events
-                false
+                ServerConfig.READER_ALLOW_RUN_COMMAND_CLICKS.get()
         );
     }
 }
