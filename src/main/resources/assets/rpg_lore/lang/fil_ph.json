@@ -12,5 +12,18 @@
   "rpg_lore.codex.tooltip.collected": "Nakolekta: %d / %d",
   "rpg_lore.codex.tooltip.duplicates_blocked": "Hinaharangan ang pagpulot ng duplikado",
   "rpg_lore.codex.no_physical_copy": "Kailangan mo ng pisikal na kopya ng aklat na ito",
-  "curios.identifier.codex": "Kodeks"
+  "curios.identifier.codex": "Kodeks",
+  "rpg_lore.command.reload.report.header": "RPG Lore reload complete:",
+  "rpg_lore.command.reload.report.loaded": "%s loaded",
+  "rpg_lore.command.reload.report.added": "%s added",
+  "rpg_lore.command.reload.report.changed": "%s changed",
+  "rpg_lore.command.reload.report.removed": "%s removed",
+  "rpg_lore.command.reload.report.warnings": "%s warnings",
+  "rpg_lore.command.reload.report.errors": "%s errors",
+  "rpg_lore.command.reload.report.skipped": "%s definitions were skipped. See latest.log or run /rpglore validate.",
+  "rpg_lore.command.reload.report.retained": "Previous catalog remains active.",
+  "rpg_lore.command.validate.summary": "%1$s sources scanned, %2$s valid, %3$s warnings, %4$s errors",
+  "rpg_lore.command.validate.ok": "%s: no issues found",
+  "rpg_lore.command.validate.issues": "%1$s: %2$s warnings, %3$s errors",
+  "rpg_lore.command.validate.unknown_book": "No lore book source found for \"%s\""
 }

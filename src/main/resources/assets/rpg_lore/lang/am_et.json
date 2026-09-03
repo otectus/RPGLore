@@ -12,5 +12,18 @@
   "rpg_lore.codex.tooltip.collected": "\u12e8\u1270\u1230\u1260\u1230\u1261: %d / %d",
   "rpg_lore.codex.tooltip.duplicates_blocked": "\u12f5\u130d\u121e\u127d \u121b\u1295\u1233\u1275 \u1270\u12d8\u130d\u1277\u120d",
   "rpg_lore.codex.no_physical_copy": "\u12e8\u12da\u1205 \u1218\u1345\u1210\u134d \u12a0\u12ab\u120b\u12ca \u1245\u12f3 \u12eb\u1235\u1348\u120d\u130e\u1273\u120d",
-  "curios.identifier.codex": "\u12ae\u12f4\u12ad\u1235"
+  "curios.identifier.codex": "\u12ae\u12f4\u12ad\u1235",
+  "rpg_lore.command.reload.report.header": "RPG Lore reload complete:",
+  "rpg_lore.command.reload.report.loaded": "%s loaded",
+  "rpg_lore.command.reload.report.added": "%s added",
+  "rpg_lore.command.reload.report.changed": "%s changed",
+  "rpg_lore.command.reload.report.removed": "%s removed",
+  "rpg_lore.command.reload.report.warnings": "%s warnings",
+  "rpg_lore.command.reload.report.errors": "%s errors",
+  "rpg_lore.command.reload.report.skipped": "%s definitions were skipped. See latest.log or run /rpglore validate.",
+  "rpg_lore.command.reload.report.retained": "Previous catalog remains active.",
+  "rpg_lore.command.validate.summary": "%1$s sources scanned, %2$s valid, %3$s warnings, %4$s errors",
+  "rpg_lore.command.validate.ok": "%s: no issues found",
+  "rpg_lore.command.validate.issues": "%1$s: %2$s warnings, %3$s errors",
+  "rpg_lore.command.validate.unknown_book": "No lore book source found for \"%s\""
 }

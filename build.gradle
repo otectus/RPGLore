@@ -45,12 +45,18 @@ minecraft {
         data {
             args '--mod', mod_id, '--all', '--output', file('src/generated/resources/').getAbsolutePath(), '--existing', file('src/main/resources/').getAbsolutePath()
         }
+
+        gameTestServer {
+            property 'forge.enabledGameTestNamespaces', mod_id
+        }
     }
 }
 
 sourceSets.main.resources { srcDir 'src/generated/resources' }
 
 repositories {
+    mavenCentral()
+
     maven {
         name = "Curios Maven"
         url = "https://maven.theillusivec4.top/"
@@ -63,6 +69,13 @@ dependencies {
     // Curios API - soft dependency (mod works without it, enhanced if present)
     compileOnly fg.deobf("top.theillusivec4.curios:curios-forge:5.4.7+1.20.1:api")
     runtimeOnly fg.deobf("top.theillusivec4.curios:curios-forge:5.4.7+1.20.1")
+
+    testImplementation 'org.junit.jupiter:junit-jupiter:5.10.2'
+    testRuntimeOnly 'org.junit.platform:junit-platform-launcher'
+}
+
+test {
+    useJUnitPlatform()
 }
 
 processResources {

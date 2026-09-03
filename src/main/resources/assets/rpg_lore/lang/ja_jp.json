@@ -12,5 +12,18 @@
   "rpg_lore.codex.tooltip.collected": "\u53ce\u96c6\u6e08\u307f: %d / %d",
   "rpg_lore.codex.tooltip.duplicates_blocked": "\u91cd\u8907\u306e\u62fe\u5f97\u3092\u30d6\u30ed\u30c3\u30af\u4e2d",
   "rpg_lore.codex.no_physical_copy": "\u3053\u306e\u672c\u306e\u5b9f\u7269\u306e\u30b3\u30d4\u30fc\u304c\u5fc5\u8981\u3067\u3059",
-  "curios.identifier.codex": "\u5178\u7c4d"
+  "curios.identifier.codex": "\u5178\u7c4d",
+  "rpg_lore.command.reload.report.header": "RPG Lore reload complete:",
+  "rpg_lore.command.reload.report.loaded": "%s loaded",
+  "rpg_lore.command.reload.report.added": "%s added",
+  "rpg_lore.command.reload.report.changed": "%s changed",
+  "rpg_lore.command.reload.report.removed": "%s removed",
+  "rpg_lore.command.reload.report.warnings": "%s warnings",
+  "rpg_lore.command.reload.report.errors": "%s errors",
+  "rpg_lore.command.reload.report.skipped": "%s definitions were skipped. See latest.log or run /rpglore validate.",
+  "rpg_lore.command.reload.report.retained": "Previous catalog remains active.",
+  "rpg_lore.command.validate.summary": "%1$s sources scanned, %2$s valid, %3$s warnings, %4$s errors",
+  "rpg_lore.command.validate.ok": "%s: no issues found",
+  "rpg_lore.command.validate.issues": "%1$s: %2$s warnings, %3$s errors",
+  "rpg_lore.command.validate.unknown_book": "No lore book source found for \"%s\""
 }

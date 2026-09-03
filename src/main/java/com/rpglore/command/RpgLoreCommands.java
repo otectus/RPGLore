@@ -2,15 +2,20 @@ package com.rpglore.command;
 
 import com.mojang.brigadier.CommandDispatcher;
 import com.mojang.brigadier.arguments.BoolArgumentType;
+import com.mojang.brigadier.arguments.StringArgumentType;
 import com.mojang.brigadier.context.CommandContext;
 import com.mojang.brigadier.suggestion.SuggestionProvider;
+import com.rpglore.RpgLoreMod;
 import com.rpglore.codex.CodexService;
 import com.rpglore.codex.CodexTrackingData;
 import com.rpglore.codex.LoreCodexItem;
 import com.rpglore.config.LoreBookRegistry;
 import com.rpglore.config.BooksConfigLoader;
+import com.rpglore.config.LoreReloadReport;
 import com.rpglore.lore.LoreBookDefinition;
 import com.rpglore.lore.LoreBookItem;
+import com.rpglore.lore.LoreValidationMessage;
+import com.rpglore.lore.LoreValidationReport;
 import com.rpglore.registry.ModItems;
 import net.minecraft.commands.CommandSourceStack;
 import net.minecraft.commands.Commands;
@@ -26,6 +31,7 @@ import net.minecraft.world.entity.item.ItemEntity;
 import net.minecraft.world.item.ItemStack;
 
 import java.util.Collection;
+import java.util.List;
 import java.util.Optional;
 import java.util.Set;
 
@@ -55,6 +61,14 @@ public final class RpgLoreCommands {
                                                         .executes(ctx -> executeGive(ctx, BoolArgumentType.getBool(ctx, "track")))
                                                 )
                                         )
+                                )
+                        )
+                        .then(Commands.literal("validate")
+                                .requires(source -> source.hasPermission(2))
+                                .executes(RpgLoreCommands::executeValidateAll)
+                                .then(Commands.argument("book_id", StringArgumentType.greedyString())
+                                        .suggests(SUGGEST_BOOK_IDS)
+                                        .executes(RpgLoreCommands::executeValidateOne)
                                 )
                         )
                         .then(Commands.literal("list")
@@ -108,8 +122,7 @@ public final class RpgLoreCommands {
     }
 
     private static int executeReload(CommandContext<CommandSourceStack> ctx) {
-        BooksConfigLoader.reload();
-        int total = LoreBookRegistry.getBookCount();
+        LoreReloadReport report = BooksConfigLoader.reload();
 
         // Prune stale entries and resync all online players
         CodexService service = CodexService.get();
@@ -117,10 +130,87 @@ public final class RpgLoreCommands {
             service.pruneAndResync(ctx.getSource().getServer());
         }
 
-        ctx.getSource().sendSuccess(
-                () -> Component.translatable("rpg_lore.command.reload.success", total),
-                true);
+        CommandSourceStack source = ctx.getSource();
+        source.sendSuccess(() -> Component.translatable("rpg_lore.command.reload.report.header"), true);
+        source.sendSuccess(() -> Component.translatable("rpg_lore.command.reload.report.loaded",
+                report.loaded()), true);
+        source.sendSuccess(() -> Component.translatable("rpg_lore.command.reload.report.added",
+                report.added()), true);
+        source.sendSuccess(() -> Component.translatable("rpg_lore.command.reload.report.changed",
+                report.changed()), true);
+        source.sendSuccess(() -> Component.translatable("rpg_lore.command.reload.report.removed",
+                report.removed()), true);
+        source.sendSuccess(() -> Component.translatable("rpg_lore.command.reload.report.warnings",
+                report.warnings()), true);
+        source.sendSuccess(() -> Component.translatable("rpg_lore.command.reload.report.errors",
+                report.errors()), true);
+
+        if (report.errors() > 0) {
+            source.sendSuccess(() -> Component.translatable("rpg_lore.command.reload.report.skipped",
+                    report.errors()), true);
+        }
+        if (report.catastrophic()) {
+            source.sendSuccess(() -> Component.translatable("rpg_lore.command.reload.report.retained"), true);
+        }
         return 1;
+    }
+
+    private static int executeValidateAll(CommandContext<CommandSourceStack> ctx) {
+        List<LoreValidationReport> reports = BooksConfigLoader.validateAll();
+
+        int valid = 0;
+        int warnings = 0;
+        int errors = 0;
+        for (LoreValidationReport report : reports) {
+            if (report.isLoaded()) valid++;
+            warnings += report.warningCount();
+            errors += report.errorCount();
+            for (LoreValidationMessage msg : report.messages()) {
+                logMessage(msg);
+            }
+        }
+
+        int sources = reports.size();
+        int validCount = valid;
+        int warningCount = warnings;
+        int errorCount = errors;
+        ctx.getSource().sendSuccess(() -> Component.translatable("rpg_lore.command.validate.summary",
+                sources, validCount, warningCount, errorCount), false);
+        return 1;
+    }
+
+    private static int executeValidateOne(CommandContext<CommandSourceStack> ctx) {
+        String bookId = StringArgumentType.getString(ctx, "book_id").trim();
+
+        Optional<LoreValidationReport> optReport = BooksConfigLoader.validateOne(bookId);
+        if (optReport.isEmpty()) {
+            ctx.getSource().sendFailure(
+                    Component.translatable("rpg_lore.command.validate.unknown_book", bookId));
+            return 0;
+        }
+
+        LoreValidationReport report = optReport.get();
+        for (LoreValidationMessage msg : report.messages()) {
+            logMessage(msg);
+            ctx.getSource().sendSuccess(() -> Component.literal(msg.format()), false);
+        }
+
+        if (report.messages().isEmpty()) {
+            ctx.getSource().sendSuccess(
+                    () -> Component.translatable("rpg_lore.command.validate.ok", bookId), false);
+        } else {
+            ctx.getSource().sendSuccess(() -> Component.translatable("rpg_lore.command.validate.issues",
+                    bookId, report.warningCount(), report.errorCount()), false);
+        }
+        return 1;
+    }
+
+    private static void logMessage(LoreValidationMessage msg) {
+        switch (msg.severity()) {
+            case ERROR -> RpgLoreMod.LOGGER.error(msg.format());
+            case WARNING -> RpgLoreMod.LOGGER.warn(msg.format());
+            case INFO -> RpgLoreMod.LOGGER.info(msg.format());
+        }
     }
 
     private static int executeGive(CommandContext<CommandSourceStack> ctx, boolean track) throws com.mojang.brigadier.exceptions.CommandSyntaxException {

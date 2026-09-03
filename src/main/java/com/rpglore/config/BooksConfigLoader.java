@@ -2,12 +2,13 @@ package com.rpglore.config;
 
 import com.google.gson.*;
 import com.rpglore.RpgLoreMod;
-import com.rpglore.lore.DropCondition;
 import com.rpglore.lore.LoreBookDefinition;
-import net.minecraft.resources.ResourceLocation;
+import com.rpglore.lore.LoreBookParser;
+import com.rpglore.lore.LoreBookSource;
+import com.rpglore.lore.LoreValidationMessage;
+import com.rpglore.lore.LoreValidationReport;
 import net.minecraftforge.fml.loading.FMLPaths;
 
-import javax.annotation.Nullable;
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.*;
@@ -15,12 +16,13 @@ import java.util.*;
 import java.util.stream.Stream;
 
 /**
- * Handles file I/O, JSON parsing, and default generation for lore book definitions.
- * The loaded book registry and tracking delegation live in {@link LoreBookRegistry}.
+ * Handles file I/O and default generation for lore book definitions.
+ * Parsing and validation live in {@link LoreBookParser}; the loaded book registry
+ * and tracking delegation live in {@link LoreBookRegistry}.
  */
 public final class BooksConfigLoader {
     private static final Gson GSON = new GsonBuilder().setPrettyPrinting().create();
-    private static final int MAX_PAGES = 200;
+    private static final String DIRECTORY_SOURCE = "config/rpg_lore/books";
 
     public static Path getBooksDir() {
         return FMLPaths.CONFIGDIR.get().resolve("rpg_lore/books");
@@ -51,6 +53,11 @@ public final class BooksConfigLoader {
     }
 
     private static void writeDefaultBook(Path dir) throws IOException {
+        Files.writeString(dir.resolve("the_fallen_kingdom.json"), defaultBookJson(), StandardCharsets.UTF_8);
+    }
+
+    /** The example book written on first launch. Exposed so tests can parse the shipped default. */
+    public static String defaultBookJson() {
         JsonObject root = new JsonObject();
         root.addProperty("title", "The Fallen Kingdom");
         root.addProperty("author", "Unknown");
@@ -68,7 +75,7 @@ public final class BooksConfigLoader {
         pages.add("{\"text\":\"Some say a creeping darkness\\nconsumed it from within.\\nOthers speak of betrayal\\nby those closest to the throne.\\n\\nThe truth, as always, lies\\nsomewhere in between.\"}");
         root.add("pages", pages);
 
-        Files.writeString(dir.resolve("the_fallen_kingdom.json"), GSON.toJson(root), StandardCharsets.UTF_8);
+        return GSON.toJson(root);
     }
 
     private static void writeReadme(Path dir) throws IOException {
@@ -142,274 +149,175 @@ public final class BooksConfigLoader {
 
     // --- Loading ---
 
-    public static void reload() {
+    /**
+     * Rescans the books directory and swaps in the new catalog.
+     * The returned report describes what changed and carries every parse diagnostic.
+     */
+    public static LoreReloadReport reload() {
         Path booksDir = getBooksDir();
+        Map<String, LoreBookDefinition> previous = snapshot();
+
         if (!Files.isDirectory(booksDir)) {
-            RpgLoreMod.LOGGER.warn("Books directory not found: {}", booksDir);
+            if (!previous.isEmpty()) {
+                // The directory vanished under a catalog that was already live: keep what we have.
+                LoreValidationMessage msg = LoreValidationMessage.error(DIRECTORY_SOURCE, null, null,
+                        "Books directory not found: " + booksDir + ". Previous catalog remains active.");
+                RpgLoreMod.LOGGER.error(msg.format());
+                return LoreReloadReport.catastrophic(previous.size(), List.of(msg));
+            }
+            LoreValidationMessage msg = LoreValidationMessage.warning(DIRECTORY_SOURCE, null, null,
+                    "Books directory not found: " + booksDir);
+            RpgLoreMod.LOGGER.warn(msg.format());
             LoreBookRegistry.setBooks(Map.of());
-            return;
+            return new LoreReloadReport(0, 0, 0, 0, 1, 0, 0, false, List.of(msg));
+        }
+
+        List<Path> files;
+        try {
+            files = listBookFiles(booksDir);
+        } catch (IOException e) {
+            LoreValidationMessage msg = LoreValidationMessage.error(DIRECTORY_SOURCE, null, null,
+                    "Failed to scan books directory: " + e.getMessage() + ". Previous catalog remains active.");
+            RpgLoreMod.LOGGER.error(msg.format());
+            return LoreReloadReport.catastrophic(previous.size(), List.of(msg));
         }
 
         Map<String, LoreBookDefinition> newBooks = new LinkedHashMap<>();
-        try (Stream<Path> files = Files.list(booksDir)) {
-            files.filter(p -> p.toString().endsWith(".json"))
-                    .sorted(Comparator.comparing(p -> p.getFileName().toString()))
-                    .forEach(file -> {
-                        try {
-                            LoreBookDefinition def = parseFile(file);
-                            if (def != null) {
-                                if (newBooks.containsKey(def.id())) {
-                                    RpgLoreMod.LOGGER.warn("Duplicate lore book ID '{}' from file '{}', skipping",
-                                            def.id(), file.getFileName());
-                                } else {
-                                    newBooks.put(def.id(), def);
-                                }
-                            }
-                        } catch (Exception e) {
-                            RpgLoreMod.LOGGER.warn("Failed to parse lore book file '{}': {}",
-                                    file.getFileName(), e.getMessage());
-                        }
-                    });
-        } catch (IOException e) {
-            RpgLoreMod.LOGGER.error("Failed to scan books directory", e);
+        List<LoreValidationMessage> messages = new ArrayList<>();
+
+        for (Path file : files) {
+            LoreValidationReport report = parseFile(file);
+            messages.addAll(report.messages());
+
+            LoreBookDefinition def = report.definition();
+            if (def == null) continue;
+
+            if (newBooks.containsKey(def.id())) {
+                // Duplicate ids keep the first file in sorted order, as they always have.
+                messages.add(LoreValidationMessage.warning(
+                        LoreBookSource.ofConfigFile(file.getFileName().toString()).displayPath(),
+                        def.id(), null,
+                        "Duplicate lore book ID '" + def.id() + "', this file was skipped."));
+            } else {
+                newBooks.put(def.id(), def);
+            }
+        }
+
+        for (LoreValidationMessage msg : messages) {
+            log(msg);
         }
 
         LoreBookRegistry.setBooks(newBooks);
 
+        int added = 0;
+        int changed = 0;
+        for (Map.Entry<String, LoreBookDefinition> entry : newBooks.entrySet()) {
+            LoreBookDefinition old = previous.get(entry.getKey());
+            if (old == null) {
+                added++;
+            } else if (!old.equals(entry.getValue())) {
+                changed++;
+            }
+        }
+        int removed = 0;
+        for (String id : previous.keySet()) {
+            if (!newBooks.containsKey(id)) removed++;
+        }
+
+        int warnings = count(messages, LoreValidationMessage.Severity.WARNING);
+        int errors = count(messages, LoreValidationMessage.Severity.ERROR);
+
         RpgLoreMod.LOGGER.info("Loaded {} lore book definition(s)", newBooks.size());
+
+        return new LoreReloadReport(newBooks.size(), added, changed, removed,
+                warnings, errors, 0, false, List.copyOf(messages));
     }
 
-    @Nullable
-    private static LoreBookDefinition parseFile(Path file) {
+    /** Re-runs the parser over every book file without touching the live registry. */
+    public static List<LoreValidationReport> validateAll() {
+        Path booksDir = getBooksDir();
+        if (!Files.isDirectory(booksDir)) return List.of();
+
+        List<Path> files;
+        try {
+            files = listBookFiles(booksDir);
+        } catch (IOException e) {
+            return List.of(new LoreValidationReport(null, List.of(LoreValidationMessage.error(
+                    DIRECTORY_SOURCE, null, null,
+                    "Failed to scan books directory: " + e.getMessage()))));
+        }
+
+        List<LoreValidationReport> reports = new ArrayList<>();
+        for (Path file : files) {
+            reports.add(parseFile(file));
+        }
+        return reports;
+    }
+
+    /** Re-parses just the source that produces the given book id, if one exists. */
+    public static Optional<LoreValidationReport> validateOne(String bookId) {
+        for (LoreValidationReport report : validateAll()) {
+            LoreBookDefinition def = report.definition();
+            if (def != null && def.id().equals(bookId)) {
+                return Optional.of(report);
+            }
+            for (LoreValidationMessage msg : report.messages()) {
+                if (bookId.equals(msg.bookId())) {
+                    return Optional.of(report);
+                }
+            }
+        }
+        return Optional.empty();
+    }
+
+    private static List<Path> listBookFiles(Path booksDir) throws IOException {
+        try (Stream<Path> files = Files.list(booksDir)) {
+            return files.filter(p -> p.toString().endsWith(".json"))
+                    .sorted(Comparator.comparing(p -> p.getFileName().toString()))
+                    .toList();
+        }
+    }
+
+    private static LoreValidationReport parseFile(Path file) {
         String filename = file.getFileName().toString();
-        String fileId = filename.substring(0, filename.length() - ".json".length());
+        LoreBookSource source = LoreBookSource.ofConfigFile(filename);
 
         String content;
         try {
             content = Files.readString(file, StandardCharsets.UTF_8);
         } catch (IOException e) {
-            RpgLoreMod.LOGGER.warn("Could not read lore book file '{}': {}", filename, e.getMessage());
-            return null;
+            return new LoreValidationReport(null, List.of(LoreValidationMessage.error(
+                    source.displayPath(), null, null,
+                    "Could not read lore book file: " + e.getMessage() + ". Book was not loaded.")));
         }
 
-        JsonObject root;
         try {
-            root = GSON.fromJson(content, JsonObject.class);
-        } catch (JsonSyntaxException e) {
-            RpgLoreMod.LOGGER.warn("Invalid JSON in lore book file '{}': {}", filename, e.getMessage());
-            return null;
+            return LoreBookParser.parse(content, source);
+        } catch (RuntimeException e) {
+            return new LoreValidationReport(null, List.of(LoreValidationMessage.error(
+                    source.displayPath(), null, null,
+                    "Failed to parse lore book file: " + e.getMessage() + ". Book was not loaded.")));
         }
-
-        if (root == null) {
-            RpgLoreMod.LOGGER.warn("Empty lore book file: '{}'", filename);
-            return null;
-        }
-
-        // id: use explicit field or derive from filename
-        String id = getStringOrDefault(root, "id", "rpg_lore:" + fileId);
-
-        // Validate ID is a valid ResourceLocation
-        if (!ResourceLocation.isValidResourceLocation(id)) {
-            RpgLoreMod.LOGGER.error("Lore book '{}' has invalid id '{}', skipping", filename, id);
-            return null;
-        }
-
-        // title (required)
-        String title = getStringOrDefault(root, "title", "");
-        if (title.isEmpty()) {
-            RpgLoreMod.LOGGER.warn("Lore book '{}' has no title, skipping", filename);
-            return null;
-        }
-
-        // M5: Warn on excessively long titles
-        if (title.length() > 48) {
-            RpgLoreMod.LOGGER.warn("Lore book '{}' has a very long title ({} chars), may display poorly",
-                    filename, title.length());
-        }
-
-        String author = getStringOrDefault(root, "author", "Unknown");
-
-        // H3: Validate and clamp generation to 0-3
-        int generation = root.has("generation") ? root.get("generation").getAsInt() : 0;
-        if (generation < 0 || generation > 3) {
-            RpgLoreMod.LOGGER.warn("Lore book '{}' has invalid generation {}, clamping to 0-3", filename, generation);
-            generation = Math.max(0, Math.min(3, generation));
-        }
-
-        double weight = root.has("weight") ? root.get("weight").getAsDouble() : 1.0;
-        if (weight <= 0) {
-            RpgLoreMod.LOGGER.warn("Lore book '{}' has invalid weight {}, clamping to 0.01", filename, weight);
-            weight = 0.01;
-        }
-
-        // pages (required)
-        if (!root.has("pages") || !root.get("pages").isJsonArray()) {
-            RpgLoreMod.LOGGER.warn("Lore book '{}' has no pages array, skipping", filename);
-            return null;
-        }
-
-        List<String> pages = new ArrayList<>();
-        for (JsonElement elem : root.getAsJsonArray("pages")) {
-            if (elem.isJsonPrimitive()) {
-                String pageText = elem.getAsString();
-                // M3: Use Gson for JSON escaping instead of manual implementation
-                if (!pageText.trim().startsWith("{")) {
-                    JsonObject comp = new JsonObject();
-                    comp.addProperty("text", pageText);
-                    pageText = GSON.toJson(comp);
-                }
-                pages.add(pageText);
-            } else if (elem.isJsonObject()) {
-                // Already a JSON text component object
-                pages.add(GSON.toJson(elem));
-            }
-        }
-
-        if (pages.isEmpty()) {
-            RpgLoreMod.LOGGER.warn("Lore book '{}' has no valid pages, skipping", filename);
-            return null;
-        }
-
-        // M4: Enforce page count limit
-        if (pages.size() > MAX_PAGES) {
-            RpgLoreMod.LOGGER.warn("Lore book '{}' has {} pages, truncating to {}",
-                    filename, pages.size(), MAX_PAGES);
-            pages = new ArrayList<>(pages.subList(0, MAX_PAGES));
-        }
-
-        // Aesthetic fields (all optional)
-        String titleColor = parseHexColor(getStringOrDefault(root, "title_color", null), "title_color", filename);
-        String authorColor = parseHexColor(getStringOrDefault(root, "author_color", null), "author_color", filename);
-        String description = getStringOrDefault(root, "description", null);
-        String descriptionColor = parseHexColor(getStringOrDefault(root, "description_color", null), "description_color", filename);
-        boolean hideGeneration = root.has("hide_generation") && root.get("hide_generation").getAsBoolean();
-
-        // E3: Per-book glint toggle (default: true for backward compatibility)
-        boolean showGlint = !root.has("show_glint") || root.get("show_glint").getAsBoolean();
-
-        // E4: Category field
-        String category = getStringOrDefault(root, "category", null);
-
-        // Codex exclusion
-        boolean codexExclude = root.has("codex_exclude") && root.get("codex_exclude").getAsBoolean();
-
-        // drop_conditions (optional)
-        DropCondition dropCondition = parseDropCondition(root, filename);
-
-        return new LoreBookDefinition(id, title, author, generation, weight, dropCondition, pages,
-                titleColor, authorColor, description, descriptionColor, hideGeneration,
-                showGlint, category, codexExclude);
     }
 
-    private static DropCondition parseDropCondition(JsonObject root, String filename) {
-        if (!root.has("drop_conditions") || !root.get("drop_conditions").isJsonObject()) {
-            return DropCondition.defaultCondition();
+    private static Map<String, LoreBookDefinition> snapshot() {
+        Map<String, LoreBookDefinition> map = new LinkedHashMap<>();
+        for (LoreBookDefinition def : LoreBookRegistry.getAllBooks()) {
+            map.put(def.id(), def);
         }
-
-        JsonObject drop = root.getAsJsonObject("drop_conditions");
-
-        List<ResourceLocation> mobTypes = parseResourceLocationList(drop, "mob_types");
-        List<String> mobTags = parseStringList(drop, "mob_tags");
-        List<ResourceLocation> biomes = parseResourceLocationList(drop, "biomes");
-        List<String> biomeTags = parseStringList(drop, "biome_tags");
-        List<ResourceLocation> dimensions = parseResourceLocationList(drop, "dimensions");
-
-        Integer minY = drop.has("min_y") ? drop.get("min_y").getAsInt() : null;
-        Integer maxY = drop.has("max_y") ? drop.get("max_y").getAsInt() : null;
-
-        // Validate min_y <= max_y when both are present
-        if (minY != null && maxY != null && minY > maxY) {
-            RpgLoreMod.LOGGER.warn("Lore book '{}' has min_y ({}) > max_y ({}), swapping values",
-                    filename, minY, maxY);
-            Integer temp = minY;
-            minY = maxY;
-            maxY = temp;
-        }
-
-        DropCondition.TimeFilter time = DropCondition.TimeFilter.ANY;
-        if (drop.has("time")) {
-            try {
-                time = DropCondition.TimeFilter.valueOf(drop.get("time").getAsString().toUpperCase());
-            } catch (IllegalArgumentException e) {
-                RpgLoreMod.LOGGER.warn("Invalid time filter in '{}', using ANY", filename);
-            }
-        }
-
-        DropCondition.WeatherFilter weather = DropCondition.WeatherFilter.ANY;
-        if (drop.has("weather")) {
-            try {
-                weather = DropCondition.WeatherFilter.valueOf(drop.get("weather").getAsString().toUpperCase());
-            } catch (IllegalArgumentException e) {
-                RpgLoreMod.LOGGER.warn("Invalid weather filter in '{}', using ANY", filename);
-            }
-        }
-
-        boolean requirePlayerKill = !drop.has("require_player_kill") || drop.get("require_player_kill").getAsBoolean();
-
-        Double baseChance = drop.has("base_chance") ? drop.get("base_chance").getAsDouble() : null;
-        if (baseChance != null && (baseChance < 0.0 || baseChance > 1.0)) {
-            RpgLoreMod.LOGGER.warn("Lore book '{}' has base_chance {} outside [0.0, 1.0], clamping",
-                    filename, baseChance);
-            baseChance = Math.max(0.0, Math.min(1.0, baseChance));
-        }
-
-        // M9: Validate max_copies_per_player range
-        int maxCopiesPerPlayer = drop.has("max_copies_per_player") ? drop.get("max_copies_per_player").getAsInt() : -1;
-        if (maxCopiesPerPlayer < -1) {
-            RpgLoreMod.LOGGER.warn("Lore book '{}' has invalid max_copies_per_player {}, using -1 (unlimited)",
-                    filename, maxCopiesPerPlayer);
-            maxCopiesPerPlayer = -1;
-        }
-
-        return new DropCondition(
-                mobTypes, mobTags, biomes, biomeTags, dimensions,
-                minY, maxY, time, weather,
-                requirePlayerKill, baseChance, maxCopiesPerPlayer
-        );
+        return map;
     }
 
-    // --- Parsing helpers ---
-
-    @Nullable
-    private static List<ResourceLocation> parseResourceLocationList(JsonObject obj, String key) {
-        if (!obj.has(key) || !obj.get(key).isJsonArray()) return null;
-        List<ResourceLocation> list = new ArrayList<>();
-        for (JsonElement elem : obj.getAsJsonArray(key)) {
-            if (elem.isJsonPrimitive()) {
-                String val = elem.getAsString();
-                if (ResourceLocation.isValidResourceLocation(val)) {
-                    list.add(new ResourceLocation(val));
-                }
-            }
-        }
-        return list.isEmpty() ? null : list;
+    private static int count(List<LoreValidationMessage> messages, LoreValidationMessage.Severity severity) {
+        return (int) messages.stream().filter(m -> m.severity() == severity).count();
     }
 
-    @Nullable
-    private static List<String> parseStringList(JsonObject obj, String key) {
-        if (!obj.has(key) || !obj.get(key).isJsonArray()) return null;
-        List<String> list = new ArrayList<>();
-        for (JsonElement elem : obj.getAsJsonArray(key)) {
-            if (elem.isJsonPrimitive()) {
-                list.add(elem.getAsString());
-            }
+    private static void log(LoreValidationMessage msg) {
+        switch (msg.severity()) {
+            case ERROR -> RpgLoreMod.LOGGER.error(msg.format());
+            case WARNING -> RpgLoreMod.LOGGER.warn(msg.format());
+            case INFO -> RpgLoreMod.LOGGER.info(msg.format());
         }
-        return list.isEmpty() ? null : list;
-    }
-
-    private static String getStringOrDefault(JsonObject obj, String key, String def) {
-        return obj.has(key) && obj.get(key).isJsonPrimitive() ? obj.get(key).getAsString() : def;
-    }
-
-    @Nullable
-    private static String parseHexColor(@Nullable String raw, String fieldName, String filename) {
-        if (raw == null || raw.isEmpty()) return null;
-        String hex = raw.startsWith("#") ? raw.substring(1) : raw;
-        if (!hex.matches("[0-9A-Fa-f]{6}")) {
-            RpgLoreMod.LOGGER.warn("Invalid {} '{}' in '{}', ignoring", fieldName, raw, filename);
-            return null;
-        }
-        return hex.toUpperCase();
     }
 
     private BooksConfigLoader() {}

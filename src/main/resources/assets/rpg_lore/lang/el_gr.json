@@ -12,5 +12,18 @@
   "rpg_lore.codex.tooltip.collected": "\u03a3\u03c5\u03bb\u03bb\u03b5\u03b3\u03bc\u03ad\u03bd\u03b1: %d / %d",
   "rpg_lore.codex.tooltip.duplicates_blocked": "\u03a4\u03b1 \u03b4\u03b9\u03c0\u03bb\u03cc\u03c4\u03c5\u03c0\u03b1 \u03bc\u03c0\u03bb\u03bf\u03ba\u03ac\u03c1\u03bf\u03bd\u03c4\u03b1\u03b9",
   "rpg_lore.codex.no_physical_copy": "\u03a7\u03c1\u03b5\u03b9\u03ac\u03b6\u03b5\u03c3\u03b1\u03b9 \u03ad\u03bd\u03b1 \u03c6\u03c5\u03c3\u03b9\u03ba\u03cc \u03b1\u03bd\u03c4\u03af\u03b3\u03c1\u03b1\u03c6\u03bf \u03b1\u03c5\u03c4\u03bf\u03cd \u03c4\u03bf\u03c5 \u03b2\u03b9\u03b2\u03bb\u03af\u03bf\u03c5",
-  "curios.identifier.codex": "\u039a\u03ce\u03b4\u03b9\u03ba\u03b1\u03c2"
+  "curios.identifier.codex": "\u039a\u03ce\u03b4\u03b9\u03ba\u03b1\u03c2",
+  "rpg_lore.command.reload.report.header": "RPG Lore reload complete:",
+  "rpg_lore.command.reload.report.loaded": "%s loaded",
+  "rpg_lore.command.reload.report.added": "%s added",
+  "rpg_lore.command.reload.report.changed": "%s changed",
+  "rpg_lore.command.reload.report.removed": "%s removed",
+  "rpg_lore.command.reload.report.warnings": "%s warnings",
+  "rpg_lore.command.reload.report.errors": "%s errors",
+  "rpg_lore.command.reload.report.skipped": "%s definitions were skipped. See latest.log or run /rpglore validate.",
+  "rpg_lore.command.reload.report.retained": "Previous catalog remains active.",
+  "rpg_lore.command.validate.summary": "%1$s sources scanned, %2$s valid, %3$s warnings, %4$s errors",
+  "rpg_lore.command.validate.ok": "%s: no issues found",
+  "rpg_lore.command.validate.issues": "%1$s: %2$s warnings, %3$s errors",
+  "rpg_lore.command.validate.unknown_book": "No lore book source found for \"%s\""
 }

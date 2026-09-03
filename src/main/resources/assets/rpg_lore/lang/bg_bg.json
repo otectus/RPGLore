@@ -12,5 +12,18 @@
   "rpg_lore.codex.tooltip.collected": "\u0421\u044a\u0431\u0440\u0430\u043d\u0438: %d / %d",
   "rpg_lore.codex.tooltip.duplicates_blocked": "\u0414\u0443\u0431\u043b\u0438\u043a\u0430\u0442\u0438\u0442\u0435 \u0441\u0430 \u0431\u043b\u043e\u043a\u0438\u0440\u0430\u043d\u0438",
   "rpg_lore.codex.no_physical_copy": "\u041d\u0443\u0436\u043d\u043e \u0432\u0438 \u0435 \u0444\u0438\u0437\u0438\u0447\u0435\u0441\u043a\u043e \u043a\u043e\u043f\u0438\u0435 \u043d\u0430 \u0442\u0430\u0437\u0438 \u043a\u043d\u0438\u0433\u0430",
-  "curios.identifier.codex": "\u041a\u043e\u0434\u0435\u043a\u0441"
+  "curios.identifier.codex": "\u041a\u043e\u0434\u0435\u043a\u0441",
+  "rpg_lore.command.reload.report.header": "RPG Lore reload complete:",
+  "rpg_lore.command.reload.report.loaded": "%s loaded",
+  "rpg_lore.command.reload.report.added": "%s added",
+  "rpg_lore.command.reload.report.changed": "%s changed",
+  "rpg_lore.command.reload.report.removed": "%s removed",
+  "rpg_lore.command.reload.report.warnings": "%s warnings",
+  "rpg_lore.command.reload.report.errors": "%s errors",
+  "rpg_lore.command.reload.report.skipped": "%s definitions were skipped. See latest.log or run /rpglore validate.",
+  "rpg_lore.command.reload.report.retained": "Previous catalog remains active.",
+  "rpg_lore.command.validate.summary": "%1$s sources scanned, %2$s valid, %3$s warnings, %4$s errors",
+  "rpg_lore.command.validate.ok": "%s: no issues found",
+  "rpg_lore.command.validate.issues": "%1$s: %2$s warnings, %3$s errors",
+  "rpg_lore.command.validate.unknown_book": "No lore book source found for \"%s\""
 }

@@ -1,5 +1,16 @@
 # Changelog
 
+## [Unreleased] - 2.2.0
+
+### New Features
+- **Pack validation command** -- `/rpglore validate` and `/rpglore validate <book_id>` (OP level 2) re-check definitions without reloading; messages logged to server, with summary in chat (bulk) or all messages in chat (single-book)
+- **Rich validation diagnostics** -- lore book parsing now produces structured validation reports with severity levels, JSON path, source position, and helpful suggestions; strict JSON first, lenient-mode fallback with warning
+
+### Improvements
+- **/rpglore reload now reports changes** -- displays loaded/added/changed/removed/warnings/errors counts; reports how many definitions were skipped due to parse errors
+- **Load resilience** -- if the books directory becomes unreadable, the previous catalog remains active instead of being replaced with an empty one
+- **Format version validation** -- added `format_version` field validation; books must omit it or set it to 1; any other value produces an error
+
 ## [2.1.2] - 2026-09-03
 
 ### Bug Fixes
