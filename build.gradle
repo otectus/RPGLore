@@ -54,7 +54,9 @@ minecraft {
 
 sourceSets.main.resources { srcDir 'src/generated/resources' }
 
-def runningGameTests = gradle.startParameter.taskNames.any { it.endsWith('runGameTestServer') }
+def skipCuriosRuntime = gradle.startParameter.taskNames.any {
+    it.endsWith('runGameTestServer') || it.endsWith('runData')
+}
 
 repositories {
     mavenCentral()
@@ -71,9 +73,10 @@ dependencies {
     // Curios API - soft dependency (mod works without it, enhanced if present)
     compileOnly fg.deobf("top.theillusivec4.curios:curios-forge:5.4.7+1.20.1:api")
     // Curios ships an SRG-named mixin refmap that the official-mappings dev runtime
-    // does not remap, so its AccessorEntity mixin aborts boot. The GameTests do not
-    // need it (CuriosCompat is guarded by isLoaded()), so keep it out of that run.
-    if (!runningGameTests) {
+    // does not remap, so its AccessorEntity mixin aborts boot. Neither headless run
+    // needs it: the GameTests never exercise Curios (CuriosCompat is guarded by
+    // isLoaded()), and datagen only writes tags, so keep it out of both.
+    if (!skipCuriosRuntime) {
         runtimeOnly fg.deobf("top.theillusivec4.curios:curios-forge:5.4.7+1.20.1")
     }
 

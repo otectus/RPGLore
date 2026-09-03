@@ -32,5 +32,8 @@ desktop.ini
 # Misc
 *.log
 
+# Datagen hash cache
+src/generated/resources/.cache/
+
 # 2.1.2 baseline reconstruction artifacts (jars, decompiled trees, diffs)
 docs/baseline/

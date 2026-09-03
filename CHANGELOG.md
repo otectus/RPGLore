@@ -3,40 +3,40 @@
 ## [Unreleased] - 2.2.0
 
 ### New Features
-- **Pack validation command** -- `/rpglore validate` and `/rpglore validate <book_id>` (OP level 2) re-check definitions without reloading; messages logged to server, with summary in chat (bulk) or all messages in chat (single-book)
-- **Rich validation diagnostics** -- lore book parsing now produces structured validation reports with severity levels, JSON path, source position, and helpful suggestions; strict JSON first, lenient-mode fallback with warning
-- **Codex search box** -- search across book titles, authors, categories, and tags with live filtering; press Ctrl+F to focus the search box; hidden uncollected names cannot be matched by queries
-- **Category and filter cycles** -- browse by All Categories, per-category, or Uncategorized; show All, Collected, Unread, Favorites, or Missing books
-- **Sorting options** -- sort by Default (unread first), Title, Category, or Recently found
-- **Unread markers and favorites** -- collected books show an unread dot (toggleable with `codex_display.showUnreadMarkers`) and clickable star icon; favorite status persists server-side
-- **Spare copy display** -- duplicates shown as `×n` with a copy icon (greyed when none remain); replaced the old `C(n)` notation
-- **Entry tooltips and keyboard navigation** -- hover to see collected book details and category; press Esc to close/exit search, arrow keys to page or select rows, Enter to open selected book
-- **"Open Lore Codex" keybind** -- new unbound-by-default key opens the Codex browser from inventory or Curios slot (server verifies the player carries the item)
-- **Loot-table book acquisition** -- new `loot_table` acquisition rule type injects books into named loot tables (chests, fishing, gameplay) with configurable chance and weight per rule; at most one book per table generation, selected by weight among candidates that passed their chance roll
-- **Advancement-driven book delivery** -- new `advancement` acquisition rule type grants books when players earn advancements, with selectable delivery: add to Codex (permanent collection entry) or drop a physical copy in inventory/at feet (once per advancement grant)
-- **Book discovery metadata** -- new `tags` (searchable keywords, blank entries dropped), `discovery_hint` (shown on uncollected entries when enabled), `series` (displayed in entry tooltip), and `series_order` (position within series) fields for organizing collections
-- **Public API and event** -- added `LoreAcquisitionService.collect()` for mods to grant books with source attribution, and `LoreCollectedEvent` on the Forge event bus (fired server-side on first-time collection only) with player, book ID, and source
+- **Lore Codex browser** -- search across titles, authors, categories, and tags with live filtering; organize by category; filter by All, Collected, Unread, Favorites, or Missing; sort by Default, Title, Category, or Recently found; browse with arrow keys and Enter; press Esc to close or exit search; all view state (search text, category, filter, sort, page, selection) is restored when you return from reading a book
+- **Unread markers and favorites** -- collected books show an unread indicator (toggleable in client config) when not yet read; click the star icon to mark any book as a favorite; favorite status persists across sessions
+- **Codex spare copy display** -- duplicates appear as `×n` with a copy icon (greyed when no spares remain); extraction is blocked when the spare bank is empty
+- **Entry tooltips** -- hover over a Codex entry to see the collected book's full details, category, and series position
+- **Optional "Open Lore Codex" keybind** -- unbound by default; opens the Codex from inventory or Curios slot when set (server verifies possession)
+- **Interactive text in books** -- hover tooltips with `show_text` and click events (`suggest_command`, `copy_to_clipboard`, `open_url`, `change_page`) work in page text; `run_command` requires the server config `reader.allowRunCommandClicks=true` (default false) for security
+- **Book title wrapping** -- titles up to two lines auto-scale (1.0× down to 0.75×) and truncate with ellipsis if needed, preventing poor display on long titles
+- **Pack validation command** -- `/rpglore validate [book_id]` (OP level 2) checks JSON syntax, unknown fields, field types and ranges, and `format_version` without reloading; bulk validation lists each definition, single-book validation shows full diagnostics
+- **Structured validation diagnostics** -- validation errors and warnings include JSON path, line/column position, and actionable suggestions; strict JSON parsing with lenient fallback
+- **Reload report** -- `/rpglore reload` displays loaded/added/changed/removed counts, config overrides of datapack definitions, and warning/error counts in chat; `/reload` logs a summary to the server log
+- **Datapack lore support** -- define books at `data/<namespace>/rpg_lore/books/<path>.json` with automatic ID generation (`<namespace>:<path>` unless the JSON declares `id`); config definitions override datapack ones (logged at INFO)
+- **Multiple acquisition routes** -- books acquire through additive `entity_drop`, `loot_table`, and `advancement` rules, allowing the same book to drop from mobs, appear in chests, and be granted by advancements simultaneously; legacy `drop_conditions` still works and becomes a single entity_drop rule
+- **Loot-table injection** -- rules with type `loot_table` inject books into named tables (chests, fishing, gameplay) with configurable chance and weight; at most one book per table generation
+- **Advancement delivery** -- rules with type `advancement` grant books when players earn advancements; delivery mode chooses between Codex (permanent) or inventory (once per player per book; a revoke and re-grant cannot mint a duplicate)
+- **Book discovery metadata** -- `tags` are searchable keywords; `discovery_hint` shows on uncollected entries when enabled; `series` and `series_order` organize related books
+- **Acquisition rules public API** -- mods call `LoreAcquisitionService.collect()` to add books with source attribution; `LoreCollectedEvent` fires on the Forge event bus (server-side, first-time collection only) carrying player, book ID, and source
+- **Automated regression tests** -- JUnit tests cover data parsing and save format migration; Forge GameTests cover Codex gameplay including entity-drop conditions, Codex pruning and reset, player granting, and death/respawn scenarios (run `./gradlew runGameTestServer` or `./gradlew runData` with Curios excluded from both headless runs)
+
+### Bug Fixes
+- **Starter Codex no longer lost on grant when inventory is full** -- previously, the inventory-full path used the standard item-drop route, triggering the soulbound toss guard which cancelled the drop and pushed the item back at the full inventory, destroying the Codex while the grant flag was already set; the Codex is now placed directly on the ground at the player's feet via ItemEntity creation, so it can be picked up without re-triggering the guard
 
 ### Improvements
-- **/rpglore reload now reports changes** -- displays loaded/added/changed/removed/warnings/errors counts; reports how many definitions were skipped due to parse errors
+- **Reading marks books as read** -- opening a book from the Codex or from your hand immediately records read state; read state persists with discovery timestamp
+- **Save format 2 with auto-migration** -- existing 2.1.x saves migrate automatically; all pre-2.2.0 books are marked read so returning players are not flooded with "new" entries
+- **Network protocol 3** -- clients and servers must both update; traffic is reduced by sending the full catalog only when it changes or when a book switches from hidden to revealed
+- **Format version validation** -- `format_version: 1` is supported; any other value produces an error
+- **Codex read state and discovery timestamps** -- tracked per book per player and persisted to `data/rpg_lore_codex.dat`
+- **Entity drop indexing** -- registry builds an immutable index at load time with exact-mob buckets, tag/biome buckets, and loot-table/advancement lookups, so mob deaths only evaluate applicable rules instead of scanning all books
 - **Load resilience** -- if the books directory becomes unreadable, the previous catalog remains active instead of being replaced with an empty one
-- **Acquisition rule toggles** -- three new server config options (`enableEntityDrops`, `enableLootTables`, `enableAdvancements`) gate each acquisition method independently
-- **Additive book acquisition** -- books now declare an `acquisition` array of rule objects (entity_drop, loot_table, advancement) that stack additively; legacy `drop_conditions` still works unchanged and becomes one entity_drop rule; a book with neither still gets a default entity_drop rule for backward compatibility
-- **Format version validation** -- added `format_version` field validation; books must omit it or set it to 1; any other value produces an error
-- **Codex read state, favorites, and discovery timestamps** -- collected books now track which you have opened, can be marked as favorites, and record discovery time. Save format version 2 automatically migrates from 2.1.x with all existing books marked read (so veterans are not flooded with "new" books). Removing a book clears all its state.
-- **Reduced Codex network traffic** -- network protocol version 3 sends the Codex catalog when the server's catalog revision changes or when a newly collected book switches from hidden to revealed; otherwise only the compact per-player state is sent.
-- **Opening a Codex book now marks it read** -- opening a book from the Codex records your read state immediately.
-- **Added automated regression tests** -- Codex collection and spare-copy logic now covered by server-side tests (JUnit for data parsing and migration, Forge GameTests for gameplay behavior). Run with `./gradlew runGameTestServer`; Curios is excluded from the test environment.
-- **Duplicate handling renamed** -- replaced "duplicate prevention" terminology with "duplicates" control offering two modes: store as spare copies (default, off) or leave on ground (on)
-- **Interactive text in lore books** -- hover events with `show_text` and click events (`suggest_command`, `copy_to_clipboard`, `open_url`, `change_page`) now work in book page text; `run_command` is gated by server config `reader.allowRunCommandClicks` (default false) for security with third-party content
-- **Long titles wrap to two lines** -- book title pages now wrap to a maximum of two lines with automatic font scaling down to 0.75× before truncating with ellipsis, preventing indefinite shrinking
-- **Reading a physical lore book marks it read in Codex** -- opening a lore book from your hand marks it as read in the Codex if that book is in your collection
-- **New client config options** -- `codex_display.rememberSearch` (default true) persists search text across Codex opens; `codex_display.showUnreadMarkers` (default true) toggles the unread dot indicator
-- **Return-to-Codex behavior** -- closing a book reader returns to the Codex screen with the same search, category, filter, sort, page, and keyboard selection preserved
-- **Datapack-driven lore definitions** -- books can now ship in datapacks at `data/<namespace>/rpg_lore/books/<path>.json`, with default ID `<namespace>:<path>` (unless the JSON declares `id` explicitly). Config definitions override datapack definitions with the same ID, logged at INFO level.
-- **Two-layer reload workflow** -- `/reload` (server resource reload) rescans both datapack and config layers; `/rpglore reload` (config-only) rescans only the config folder and merges with the existing datapack layer. Both report change counts, including a new overrides count showing how many config definitions shadow datapack ones.
-- **Auto-regenerating config README** -- `config/rpg_lore/books/_README.txt` now regenerates automatically when the documentation version increments, ensuring users have current field documentation without manual intervention.
-- **Entity drop rule indexing** -- the registry builds an immutable index when definitions load with exact-mob buckets plus a generic bucket for tag/biome-only rules, cached Codex-eligible ids and categories, and loot-table and advancement lookups, so a mob death only evaluates rules that could apply instead of scanning every book; drop conditions are fully evaluated for each candidate
+- **Duplicate handling naming** -- "duplicate prevention" terminology replaced with "duplicates" control offering two modes: store spares (default) or leave on ground
+- **New server config options** -- `acquisition.enableEntityDrops` (default true), `acquisition.enableLootTables` (default true), `acquisition.enableAdvancements` (default true), `codex.enableDiscoveryHints` (default true), `reader.allowRunCommandClicks` (default false)
+- **New client config options** -- `codex_display.rememberSearch` (default true) and `codex_display.showUnreadMarkers` (default true)
+- **Two-layer reload workflow** -- `/reload` rescans both datapack and config; `/rpglore reload` rescans config only and merges with the existing datapack layer
+- **Auto-regenerating config README** -- `config/rpg_lore/books/_README.txt` regenerates when documentation version increments, keeping field docs current without user intervention
 
 ## [2.1.2] - 2026-09-03
 

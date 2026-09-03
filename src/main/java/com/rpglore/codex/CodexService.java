@@ -227,12 +227,16 @@ public final class CodexService {
         LoreCodexItem.syncItemNbt(codex, codexData, uuid);
 
         if (!player.getInventory().add(codex)) {
-            // Inventory full — drop on ground
-            ItemEntity drop = player.drop(codex, false);
-            if (drop != null) {
-                drop.setNoPickUpDelay();
-                drop.setThrower(uuid);
-            }
+            // Inventory full — put the Codex into the world directly. Player.drop would post
+            // an ItemTossEvent, and the soul-bound guard cancels that toss and pushes the stack
+            // back at the inventory that just refused it, which destroys the Codex.
+            ItemEntity drop = new ItemEntity(player.level(),
+                    player.getX(), player.getY(), player.getZ(), codex);
+            drop.setNoPickUpDelay();
+            drop.setThrower(uuid);
+            player.level().addFreshEntity(drop);
+            RpgLoreMod.LOGGER.info("Dropped the Codex for {} at their feet — inventory was full",
+                    player.getName().getString());
         }
 
         codexData.markCodexGranted(uuid);

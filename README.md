@@ -10,16 +10,19 @@ A data-driven lore book mod for Minecraft Forge 1.20.1. Define custom books via 
 ## Features
 
 - **JSON-defined lore books** -- add, edit, or remove books without recompiling. Each `.json` file in the config folder becomes a lore book.
-- **Conditional mob drops** -- control which mobs drop which books based on entity type, biome, dimension, time of day, weather, Y-level, and more.
-- **Lore Codex** -- a soul-bound collection book that stores your lore books directly. Books go into the Codex on pickup (not your inventory); duplicates are banked as extractable spare copies. Browse, read, and extract collected books from a custom parchment-styled GUI.
-- **Auto-generated title page** -- every lore book opens with a stylized title page showing the book's title (scaled up, bold, colored) and author (bold, colored), both centered on the page.
+- **Multiple acquisition routes** -- books drop from mobs, inject into named loot tables (chests, fishing, gameplay), and reward advancements. Rules are additive, so the same book can acquire through any or all methods.
+- **Conditional drops** -- control which mobs drop which books based on entity type, biome, dimension, time of day, weather, Y-level, and more. Loot-table injection has configurable chance and weight per rule.
+- **Lore Codex** -- a soul-bound collection browser that stores your lore books directly. Books go into the Codex on pickup (not your inventory); duplicates are banked as extractable spare copies. Browse with search, category filters, favorite marking, and read state tracking.
+- **Codex browser features** -- search by title, author, category, and tags; organize by category with progress counters; filter by Collected, Unread, Favorites, or Missing; sort by Default, Title, Category, or Recently found; keyboard navigation with arrow keys and Enter; all view state is preserved when you return from reading a book.
+- **Auto-generated title page** -- every lore book opens with a stylized title page showing the book's title (auto-scaled to fit two lines, bold, colored) and author (bold, colored), both centered on the page.
 - **Custom book GUI** -- lore books use a unique book texture distinct from vanilla written books.
-- **Tooltip styling** -- bold colored title, bold colored author, italic description, and generation label with automatic formatting.
-- **Configurable appearance** -- per-book title color, author color, description, glint toggle, and category via the JSON definition.
+- **Interactive text in pages** -- hover tooltips and click events (`suggest_command`, `copy_to_clipboard`, `open_url`, `change_page`) work in page text; `run_command` is configurable for pack-author control.
+- **Tooltip styling** -- bold colored title, bold colored author, italic description, series position, and generation label with automatic formatting.
+- **Configurable appearance** -- per-book title color, author color, description, glint toggle, category, and searchable tags via the JSON definition.
 - **Enchantment glint** -- lore books shimmer with an enchantment glint by default (configurable per-book with `show_glint`).
 - **Curios API support** -- optionally equip the Codex in a dedicated Curios slot (soft dependency; works without Curios installed).
-- **In-game commands** -- give books, reload configs, list books, view your collection, and manage Codex data.
-- **Per-player copy limits** -- optionally restrict how many times a player can receive a specific book.
+- **In-game commands** -- give books, reload configs, list books, view your collection, validate definitions, and manage Codex data.
+- **Per-player copy limits** -- optionally restrict how many times a player can receive a specific book via `drop_conditions`.
 - **Looting scaling** -- optionally increase drop chance with the Looting enchantment.
 - **60 languages** -- localized in English, Chinese, Spanish, Hindi, Arabic, French, German, Russian, Japanese, Korean, and 50 more.
 
@@ -49,11 +52,18 @@ Each `.json` file in `config/rpg_lore/books/` defines one lore book. The filenam
 
 | Field | Type | Required | Default | Description |
 |-------|------|----------|---------|-------------|
+| `format_version` | int | No | `1` | Schema version; only 1 is supported |
+| `id` | string | No | *(filename)* | Override the book's registry ID (otherwise derived from filename) |
 | `title` | string | Yes | -- | Book title displayed in-game |
 | `author` | string | No | `"Unknown"` | Author name |
 | `generation` | int | No | `0` | 0 = Original, 1 = Copy, 2 = Copy of Copy, 3 = Tattered |
 | `weight` | number | No | `1.0` | Selection weight when multiple books match a drop |
 | `pages` | array | Yes | -- | Page content (JSON text components or plain strings) |
+| `acquisition` | array | No | *(none)* | Array of acquisition rule objects (entity_drop, loot_table, advancement) |
+| `tags` | array | No | *(none)* | Searchable keywords for Codex search (blank entries dropped) |
+| `discovery_hint` | string | No | *(none)* | Hint shown on uncollected Codex entries when discovery hints are enabled |
+| `series` | string | No | *(none)* | Series name shown in the Codex entry tooltip |
+| `series_order` | int | No | `0` | Position within the series (negative values clamp to 0) |
 
 ### Appearance Fields (all optional)
 
@@ -70,13 +80,13 @@ Each `.json` file in `config/rpg_lore/books/` defines one lore book. The filenam
 
 ### Drop Conditions (all optional)
 
-Nested inside a `"drop_conditions"` object. Omitted fields match everything.
+Nested inside a `"drop_conditions"` object at the book's top level (legacy). Omitted fields match everything. **Note:** `drop_conditions` is an alternative to the `acquisition` array; books with neither get a default entity_drop rule for backward compatibility.
 
 | Field | Type | Default | Description |
 |-------|------|---------|-------------|
 | `require_player_kill` | bool | `true` | Must the mob be killed by a player? |
 | `base_chance` | number | *(global)* | Override drop chance (0.0--1.0) for this book |
-| `max_copies_per_player` | int | `-1` | Max times a player can receive this book (-1 = unlimited) |
+| `max_copies_per_player` | int | `-1` | Max times a player can receive this book (-1 = unlimited). Note: loot-table rules do not enforce per-player caps. |
 | `mob_types` | array | *(any)* | Entity type IDs, e.g. `["minecraft:zombie"]` |
 | `mob_tags` | array | *(any)* | Entity type tags, e.g. `["minecraft:undead"]` |
 | `biomes` | array | *(any)* | Biome IDs, e.g. `["minecraft:plains"]` |
@@ -124,7 +134,7 @@ Insert a book into named loot tables (chests, fishing, gameplay tables). Each ta
 
 ### Advancement Delivery
 
-Grant a book when a player earns any of the listed advancements. Codex delivery adds the book permanently to the collection; inventory delivery gives a physical copy once per advancement grant, dropping it at the player's feet if the inventory is full.
+Grant a book when a player earns any of the listed advancements. Codex delivery adds the book permanently to the collection; inventory delivery gives a physical copy once per player per book (a revoke and re-grant of the same advancement cannot mint a duplicate), dropping it at the player's feet if the inventory is full.
 
 ```json
 {
@@ -193,7 +203,7 @@ The `config/rpg_lore/books/` directory always takes precedence. A config definit
 
 Each book definition may include an optional `format_version` field (integer). Only version 1 is supported; omitting the field defaults to version 1. Any other value is an error and blocks the book from loading.
 
-Use `/rpglore validate` or `/rpglore validate <book_id>` (OP level 2) to validate definitions without reloading. The output reports the source of each book (datapack or config) and includes diagnostics for any syntax errors or missing click event targets.
+Use `/rpglore validate` or `/rpglore validate <book_id>` (OP level 2) to validate definitions without reloading. The output reports the source of each book (datapack or config) and includes diagnostics for syntax errors, unknown fields, invalid field values, and unsupported `format_version`.
 
 ## Lore Codex
 
@@ -203,16 +213,16 @@ The Lore Codex is a soul-bound item that stores and tracks your lore book collec
 - **Banked spare copies** -- the first copy of a book becomes a permanent, readable *master* entry. Every additional duplicate you pick up is banked as a *spare copy* (shown as `×n` in the GUI, capped at 99 per book). Duplicates are absorbed with a distinct lower-pitch sound.
 - **Auto-granted** on first login (configurable)
 - **Soul-bound** -- kept on death, cannot be dropped
-- **Browse & read** -- open the Codex GUI to browse your collected books. The collection counter shows how many books you've found vs. total available in the current category.
-- **Search** -- live-search across book titles, authors, categories, and tags. Press Ctrl+F to focus the search box; hidden uncollected names cannot be matched by searches.
+- **Browse, search, and read** -- open the Codex GUI to browse your collected books. Live-search across titles, authors, categories, and tags. The collection counter shows how many books you've found vs. total available in the current category.
 - **Organize by category** -- cycle through All Categories, individual categories, or Uncategorized books; the progress counter reflects your completion in the chosen category.
 - **Filter and sort** -- filter by All, Collected, Unread, Favorites, or Missing books. Sort by Default (unread first), Title, Category, or Recently found.
-- **Unread markers and favorites** -- collected books show an unread dot when not yet read (toggleable in client config); mark any book as a favorite with a clickable star, persisted server-side and across sessions.
-- **Extract copies** -- pull a physical copy of a book into your inventory (generation incremented). Extraction draws down that book's banked spares and is blocked once none remain -- the master copy is never consumed. Spare count shown as `×n` with a copy icon; greyed and disabled when no spares are available.
+- **Unread tracking and favorites** -- collected books show an unread dot when not yet read (toggleable in client config). Mark any book as a favorite with a clickable star; favorite status persists server-side and across sessions. Opening a book marks it read immediately.
+- **Extract copies** -- pull a physical copy of a book into your inventory (generation incremented). Extraction draws down that book's banked spares and is blocked once none remain; the master copy is never consumed. Spare count shown as `×n` with a copy icon; greyed and disabled when no spares are available.
 - **Duplicate handling** -- configure whether duplicate pickups are stored as spare copies (default) or left on the ground. Toggle via the button in the Codex GUI.
-- **Keyboard navigation** -- press Esc to close search or screen; use arrow keys to page through the list or select rows; press Enter to open a selected book. After closing a book, you return to the Codex with your previous search, category, filter, sort, and selection preserved.
+- **Keyboard navigation** -- press Esc to close search or screen; use arrow keys to page through the list or select rows; press Enter to open a selected book. After closing a book, you return to the Codex with your previous search, category, filter, sort, page, and selection preserved.
 - **"Open Lore Codex" keybind** -- unbound by default, this optional hotkey opens the Codex browser when you carry the Codex in your inventory or Curios slot.
 - **Curios support** -- equip the Codex in a dedicated "codex" Curios slot if the Curios mod is installed. All features work from either inventory or Curios slot.
+- **Discovery hints** -- books can include a hint for uncollected entries, shown in the Codex when discovery hints are enabled (toggleable in server config).
 
 ## Integrating with RPG Lore
 
@@ -261,15 +271,16 @@ public class MyEventHandler {
 
 | Command | Permission | Description |
 |---------|------------|-------------|
-| `/rpglore reload` | OP | Reload all book definitions from disk |
-| `/rpglore give <players> <book_id> [track]` | OP | Give a book to player(s); optional `true` to count against copy limits |
-| `/rpglore list` | OP | List all loaded book definitions |
-| `/rpglore collection` | All | View your own lore book collection |
-| `/rpglore codex give <players>` | OP | Give a Lore Codex item to player(s) |
-| `/rpglore codex status <player>` | OP | View a player's Codex collection |
-| `/rpglore codex add <players> <book_id>` | OP | Add a book to player(s)' Codex |
-| `/rpglore codex remove <players> <book_id>` | OP | Remove a book from player(s)' Codex |
-| `/rpglore codex reset <players>` | OP | Clear all collected books from player(s)' Codex |
+| `/rpglore reload` | Level 2 (OP) | Reload book definitions from the config folder and merge with the existing datapack layer; displays change counts |
+| `/rpglore validate [book_id]` | Level 2 (OP) | Check all definitions (or a single book) for syntax errors, unknown fields, invalid values, and unsupported `format_version` without reloading |
+| `/rpglore give <players> <book_id> [track]` | Level 2 (OP) | Give a book to player(s); optional `true` to count against per-player copy limits (default: false, no tracking) |
+| `/rpglore list` | Level 2 (OP) | List all loaded book definitions with their categories |
+| `/rpglore collection` | Level 0 (All) | View your own lore book collection |
+| `/rpglore codex give <players>` | Level 2 (OP) | Give a Lore Codex item to player(s) |
+| `/rpglore codex status <player>` | Level 2 (OP) | View a player's Codex collection and duplicate handling mode |
+| `/rpglore codex add <players> <book_id>` | Level 2 (OP) | Add a book to player(s)' Codex |
+| `/rpglore codex remove <players> <book_id>` | Level 2 (OP) | Remove a book from player(s)' Codex |
+| `/rpglore codex reset <players>` | Level 2 (OP) | Clear all collected books from player(s)' Codex |
 
 ## Server Configuration
 
@@ -311,23 +322,46 @@ public class MyEventHandler {
 
 | Setting | Default | Description |
 |---------|---------|-------------|
-| `allowRunCommandClicks` | `false` | Allow run_command click events inside lore book text |
+| `allowRunCommandClicks` | `false` | Allow `run_command` click events inside lore book text. Off by default because lore packs are third-party content. |
 
 ## Client Configuration
 
 `config/rpg_lore/client.toml`
 
+### Display Settings
+
 | Setting | Default | Description |
 |---------|---------|-------------|
 | `showLoreIdInTooltip` | `false` | Show internal lore_id in tooltip (for pack authors) |
-| `showCollectionNotification` | `true` | Show action bar message on new collection |
-| `playCollectionSound` | `true` | Play sound on new collection |
-| `rememberSearch` | `true` | Keep Codex search text when closing and reopening the screen |
-| `showUnreadMarkers` | `true` | Show a dot indicator next to collected books not yet read |
+
+### Codex Display Settings
+
+| Setting | Default | Description |
+|---------|---------|-------------|
+| `showCollectionNotification` | `true` | Show an action bar message when a new book is added to the Codex |
+| `playCollectionSound` | `true` | Play a sound when a new book is collected into the Codex |
+| `rememberSearch` | `true` | Keep Codex search text when the screen is closed and reopened |
+| `showUnreadMarkers` | `true` | Show a dot next to collected books that have not been read yet |
 
 ## Supported Languages
 
 60 locales including: English, Chinese (Simplified & Traditional), Spanish, Hindi, Arabic, French, German, Italian, Portuguese, Dutch, Polish, Russian, Ukrainian, Swedish, Danish, Norwegian, Finnish, Czech, Slovak, Hungarian, Romanian, Bulgarian, Greek, Turkish, Croatian, Serbian, Slovenian, Macedonian, Albanian, Estonian, Latvian, Lithuanian, Icelandic, Maltese, Catalan, Galician, Basque, Irish, Welsh, Belarusian, Japanese, Korean, Indonesian, Vietnamese, Thai, Bengali, Tamil, Filipino, Afrikaans, Swahili, Hausa, Amharic, Yoruba, Oromo, Igbo, Zulu, Somali, and more.
+
+## Development
+
+Build the mod and run tests:
+
+```bash
+./gradlew build                 # Full build and tests
+./gradlew compileJava          # Compile only
+./gradlew test                 # Run JUnit tests
+./gradlew runGameTestServer    # Run Forge GameTests (Curios excluded)
+./gradlew runData              # Run data generators (Curios excluded)
+```
+
+JUnit tests cover data parsing and save format migration. Forge GameTests cover Codex collection logic and spare-copy handling. Both Curios exclusions are configured in `build.gradle` because the Curios mixin in headless environments causes boot failures that do not affect the mod in actual play.
+
+See `docs/INTERACTIVE_TEXT.md` for creating interactive click events and hover tooltips in lore books, and `docs/SAVE_FORMAT.md` for the Codex save file structure.
 
 ## Building from Source
 
