@@ -70,13 +70,18 @@ public class LoreTrackingData extends SavedData {
     /**
      * Removes tracking entries for book IDs that are no longer loaded.
      */
-    public void pruneStaleEntries(java.util.Set<String> validBookIds) {
-        for (Map<String, Integer> books : playerCopies.values()) {
-            books.keySet().retainAll(validBookIds);
+    /** @return the players whose tracked copies actually changed. */
+    public java.util.Set<UUID> pruneStaleEntries(java.util.Set<String> validBookIds) {
+        java.util.Set<UUID> pruned = new java.util.HashSet<>();
+        for (Map.Entry<UUID, Map<String, Integer>> entry : playerCopies.entrySet()) {
+            if (entry.getValue().keySet().retainAll(validBookIds)) {
+                pruned.add(entry.getKey());
+            }
         }
         // Remove players with no remaining entries
         playerCopies.entrySet().removeIf(e -> e.getValue().isEmpty());
-        setDirty();
+        if (!pruned.isEmpty()) setDirty();
+        return pruned;
     }
 
     public static LoreTrackingData getOrCreate(ServerLevel overworld) {

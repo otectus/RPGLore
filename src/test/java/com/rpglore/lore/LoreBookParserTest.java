@@ -495,6 +495,53 @@ class LoreBookParserTest {
     }
 
     @Test
+    void datapackSourceAcceptsNamespacedIdWithNestedPath() {
+        LoreBookSource datapack = new LoreBookSource(LoreBookSource.SourceKind.DATAPACK,
+                "towns_and_dragons:history/fall_of_ardath (datapack)",
+                "towns_and_dragons:history/fall_of_ardath");
+
+        LoreValidationReport report = LoreBookParser.parse("""
+                {
+                  "title": "The Fall of Ardath",
+                  "pages": ["A page."]
+                }
+                """, datapack);
+
+        assertTrue(report.isLoaded(), () -> "datapack book failed to parse: " + formatAll(report));
+        assertEquals("towns_and_dragons:history/fall_of_ardath", report.definition().id());
+    }
+
+    @Test
+    void explicitNonRpgLoreIdIsAcceptedForADatapackSource() {
+        LoreBookSource datapack = new LoreBookSource(LoreBookSource.SourceKind.DATAPACK,
+                "towns_and_dragons:books/x (datapack)", "towns_and_dragons:books/x");
+
+        LoreValidationReport report = LoreBookParser.parse("""
+                {
+                  "id": "towns_and_dragons:history/fall_of_ardath",
+                  "title": "The Fall of Ardath",
+                  "pages": ["A page."]
+                }
+                """, datapack);
+
+        assertTrue(report.isLoaded(), () -> "datapack book failed to parse: " + formatAll(report));
+        assertEquals("towns_and_dragons:history/fall_of_ardath", report.definition().id());
+    }
+
+    @Test
+    void configFileStillDerivesItsIdFromTheFilename() {
+        LoreValidationReport report = LoreBookParser.parse("""
+                {
+                  "title": "The Fallen Kingdom",
+                  "pages": ["A page."]
+                }
+                """, LoreBookSource.ofConfigFile("fallen_kingdom.json"));
+
+        assertTrue(report.isLoaded(), () -> "config book failed to parse: " + formatAll(report));
+        assertEquals("rpg_lore:fallen_kingdom", report.definition().id());
+    }
+
+    @Test
     void shippedDefaultBookParsesCleanly() {
         LoreValidationReport report = parse(BooksConfigLoader.defaultBookJson());
 

@@ -11,9 +11,11 @@ import com.rpglore.codex.CodexTrackingData;
 import com.rpglore.codex.LoreCodexItem;
 import com.rpglore.config.LoreBookRegistry;
 import com.rpglore.config.BooksConfigLoader;
+import com.rpglore.config.LoreCatalogBuilder;
 import com.rpglore.config.LoreReloadReport;
 import com.rpglore.lore.LoreBookDefinition;
 import com.rpglore.lore.LoreBookItem;
+import com.rpglore.lore.LoreBookSource;
 import com.rpglore.lore.LoreValidationMessage;
 import com.rpglore.lore.LoreValidationReport;
 import com.rpglore.registry.ModItems;
@@ -31,6 +33,7 @@ import net.minecraft.world.entity.item.ItemEntity;
 import net.minecraft.world.item.ItemStack;
 
 import java.util.Collection;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Optional;
 import java.util.Set;
@@ -122,7 +125,15 @@ public final class RpgLoreCommands {
     }
 
     private static int executeReload(CommandContext<CommandSourceStack> ctx) {
-        LoreReloadReport report = BooksConfigLoader.reload();
+        // Only the config layer is rescanned here; datapack definitions change on /reload.
+        BooksConfigLoader.ConfigLayerResult configLayer = BooksConfigLoader.loadConfigLayer();
+        LoreReloadReport report;
+        if (configLayer.catastrophic()) {
+            report = LoreReloadReport.catastrophic(LoreBookRegistry.getBookCount(), configLayer.messages());
+        } else {
+            LoreCatalogBuilder.setConfigLayer(configLayer.entries());
+            report = LoreCatalogBuilder.rebuild();
+        }
 
         // Prune stale entries and resync all online players
         CodexService service = CodexService.get();
@@ -140,6 +151,8 @@ public final class RpgLoreCommands {
                 report.changed()), true);
         source.sendSuccess(() -> Component.translatable("rpg_lore.command.reload.report.removed",
                 report.removed()), true);
+        source.sendSuccess(() -> Component.translatable("rpg_lore.command.reload.report.overrides",
+                report.overrides()), true);
         source.sendSuccess(() -> Component.translatable("rpg_lore.command.reload.report.warnings",
                 report.warnings()), true);
         source.sendSuccess(() -> Component.translatable("rpg_lore.command.reload.report.errors",
@@ -156,40 +169,62 @@ public final class RpgLoreCommands {
     }
 
     private static int executeValidateAll(CommandContext<CommandSourceStack> ctx) {
-        List<LoreValidationReport> reports = BooksConfigLoader.validateAll();
+        List<LoreCatalogBuilder.LayerEntry> entries = LoreCatalogBuilder.getAllReports();
 
         int valid = 0;
         int warnings = 0;
         int errors = 0;
-        for (LoreValidationReport report : reports) {
-            if (report.isLoaded()) valid++;
+        Set<String> datapackIds = new HashSet<>();
+        Set<String> configIds = new HashSet<>();
+
+        for (LoreCatalogBuilder.LayerEntry entry : entries) {
+            LoreValidationReport report = entry.report();
+            if (report.isLoaded()) {
+                valid++;
+                String id = report.definition().id();
+                if (entry.source().kind() == LoreBookSource.SourceKind.DATAPACK) {
+                    datapackIds.add(id);
+                } else {
+                    configIds.add(id);
+                }
+            }
             warnings += report.warningCount();
             errors += report.errorCount();
+
+            ctx.getSource().sendSuccess(() -> Component.literal(describeSource(entry)), false);
             for (LoreValidationMessage msg : report.messages()) {
                 logMessage(msg);
             }
         }
 
-        int sources = reports.size();
+        configIds.retainAll(datapackIds);
+
+        int sources = entries.size();
         int validCount = valid;
         int warningCount = warnings;
         int errorCount = errors;
+        int overrideCount = configIds.size();
         ctx.getSource().sendSuccess(() -> Component.translatable("rpg_lore.command.validate.summary",
                 sources, validCount, warningCount, errorCount), false);
+        ctx.getSource().sendSuccess(() -> Component.translatable("rpg_lore.command.validate.summary.overrides",
+                overrideCount), false);
         return 1;
     }
 
     private static int executeValidateOne(CommandContext<CommandSourceStack> ctx) {
         String bookId = StringArgumentType.getString(ctx, "book_id").trim();
 
-        Optional<LoreValidationReport> optReport = BooksConfigLoader.validateOne(bookId);
-        if (optReport.isEmpty()) {
+        Optional<LoreCatalogBuilder.LayerEntry> optEntry = LoreCatalogBuilder.findReport(bookId);
+        if (optEntry.isEmpty()) {
             ctx.getSource().sendFailure(
                     Component.translatable("rpg_lore.command.validate.unknown_book", bookId));
             return 0;
         }
 
-        LoreValidationReport report = optReport.get();
+        LoreCatalogBuilder.LayerEntry entry = optEntry.get();
+        LoreValidationReport report = entry.report();
+        ctx.getSource().sendSuccess(() -> Component.literal(describeSource(entry)), false);
+
         for (LoreValidationMessage msg : report.messages()) {
             logMessage(msg);
             ctx.getSource().sendSuccess(() -> Component.literal(msg.format()), false);
@@ -203,6 +238,12 @@ public final class RpgLoreCommands {
                     bookId, report.warningCount(), report.errorCount()), false);
         }
         return 1;
+    }
+
+    /** Admin-facing one-liner: which layer a source belongs to and where it lives. */
+    private static String describeSource(LoreCatalogBuilder.LayerEntry entry) {
+        String kind = entry.source().kind() == LoreBookSource.SourceKind.DATAPACK ? "datapack" : "config";
+        return "[" + kind + "] " + entry.source().displayPath();
     }
 
     private static void logMessage(LoreValidationMessage msg) {

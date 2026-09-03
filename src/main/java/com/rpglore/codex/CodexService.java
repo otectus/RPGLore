@@ -21,6 +21,7 @@ import net.minecraft.world.item.ItemStack;
 import javax.annotation.Nullable;
 import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
@@ -239,17 +240,26 @@ public final class CodexService {
     }
 
     /**
-     * Prunes stale entries from both tracking systems and resyncs all online players.
+     * Prunes stale entries from both tracking systems and resyncs the players a reload could
+     * have affected: those whose state was pruned, and those holding a catalog revision the
+     * registry has since moved past. A reload that changed nothing sends no packets.
      */
     public void pruneAndResync(MinecraftServer server) {
+        Set<UUID> pruned = new HashSet<>();
+
         LoreTrackingData trackingData = LoreBookRegistry.getTrackingData();
         if (trackingData != null) {
-            trackingData.pruneStaleEntries(LoreBookRegistry.getAllBookIds());
+            pruned.addAll(trackingData.pruneStaleEntries(LoreBookRegistry.getAllBookIds()));
         }
-        codexData.pruneStaleEntries(LoreBookRegistry.getCodexEligibleIds());
+        pruned.addAll(codexData.pruneStaleEntries(LoreBookRegistry.getCodexEligibleIds()));
 
+        int revision = LoreBookRegistry.getRevision();
         for (ServerPlayer player : server.getPlayerList().getPlayers()) {
-            resyncPlayer(player);
+            UUID uuid = player.getUUID();
+            Integer lastSent = lastSentRevision.get(uuid);
+            if (pruned.contains(uuid) || lastSent == null || lastSent != revision) {
+                resyncPlayer(player);
+            }
         }
     }
 

@@ -8,7 +8,9 @@ import com.rpglore.command.RpgLoreCommands;
 import com.rpglore.config.BooksConfigLoader;
 import com.rpglore.config.ClientConfig;
 import com.rpglore.config.LoreBookRegistry;
+import com.rpglore.config.LoreCatalogBuilder;
 import com.rpglore.config.ServerConfig;
+import com.rpglore.data.DatapackLoreReloadListener;
 import com.rpglore.data.LoreTrackingData;
 import com.rpglore.gametest.RpgLoreGameTests;
 import com.rpglore.lore.LoreBookLecternHandler;
@@ -16,11 +18,14 @@ import com.rpglore.loot.ModLootModifiers;
 import com.rpglore.network.ModNetwork;
 import com.rpglore.registry.ModItems;
 import com.mojang.logging.LogUtils;
+import net.minecraft.server.MinecraftServer;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.world.item.CreativeModeTabs;
 import net.minecraftforge.api.distmarker.Dist;
 import net.minecraftforge.common.MinecraftForge;
+import net.minecraftforge.event.AddReloadListenerEvent;
 import net.minecraftforge.event.BuildCreativeModeTabContentsEvent;
+import net.minecraftforge.event.OnDatapackSyncEvent;
 import net.minecraftforge.event.RegisterCommandsEvent;
 import net.minecraftforge.event.RegisterGameTestsEvent;
 import net.minecraftforge.event.server.ServerStartingEvent;
@@ -31,6 +36,7 @@ import net.minecraftforge.fml.ModLoadingContext;
 import net.minecraftforge.fml.common.Mod;
 import net.minecraftforge.fml.config.ModConfig;
 import net.minecraftforge.fml.javafmlmod.FMLJavaModLoadingContext;
+import net.minecraftforge.server.ServerLifecycleHooks;
 import org.slf4j.Logger;
 
 @Mod(RpgLoreMod.MODID)
@@ -62,6 +68,8 @@ public class RpgLoreMod {
         MinecraftForge.EVENT_BUS.addListener(this::onServerStarting);
         MinecraftForge.EVENT_BUS.addListener(this::onServerStopped);
         MinecraftForge.EVENT_BUS.addListener(this::onRegisterCommands);
+        MinecraftForge.EVENT_BUS.addListener(this::onAddReloadListener);
+        MinecraftForge.EVENT_BUS.addListener(this::onDatapackSync);
 
         // Register Codex event handler
         MinecraftForge.EVENT_BUS.register(CodexEventHandler.class);
@@ -104,12 +112,39 @@ public class RpgLoreMod {
         CodexTrackingData.setInstance(codexData);
         CodexService.init(codexData);
 
+        // The datapack layer was already filled by DatapackLoreReloadListener during world load;
+        // adding the config layer on top produces the merged catalog.
         BooksConfigLoader.ensureDefaults();
-        BooksConfigLoader.reload();
+        BooksConfigLoader.ConfigLayerResult configLayer = BooksConfigLoader.loadConfigLayer();
+        if (configLayer.catastrophic()) {
+            LOGGER.error("Config lore books could not be scanned; keeping the datapack catalog only");
+        } else {
+            LoreCatalogBuilder.setConfigLayer(configLayer.entries());
+        }
+        LoreCatalogBuilder.rebuild();
 
         // Prune stale entries from both tracking systems
         trackingData.pruneStaleEntries(LoreBookRegistry.getAllBookIds());
         codexData.pruneStaleEntries(LoreBookRegistry.getCodexEligibleIds());
+    }
+
+    private void onAddReloadListener(final AddReloadListenerEvent event) {
+        event.addListener(new DatapackLoreReloadListener());
+    }
+
+    /**
+     * A full datapack sync (no specific player) means the server just reloaded its resources,
+     * so the catalog may have moved under every online player. A single joining player already
+     * gets a resync from the login handler.
+     */
+    private void onDatapackSync(final OnDatapackSyncEvent event) {
+        if (event.getPlayer() != null) return;
+
+        MinecraftServer server = ServerLifecycleHooks.getCurrentServer();
+        CodexService service = CodexService.get();
+        if (server != null && service != null) {
+            service.pruneAndResync(server);
+        }
     }
 
     private void onServerStopped(final ServerStoppedEvent event) {

@@ -117,6 +117,18 @@ Pages can be plain strings (auto-wrapped) or full JSON text components for advan
 ]
 ```
 
+## Datapack lore
+
+Datapacks can define lore books alongside configuration files. A datapack file at `data/<namespace>/rpg_lore/books/<path>.json` becomes a book with the id `<namespace>:<path>` (e.g. `data/towns_and_dragons/rpg_lore/books/history/fall_of_ardath.json` defines `towns_and_dragons:history/fall_of_ardath`) unless the JSON itself declares an `id` field.
+
+The `config/rpg_lore/books/` directory always takes precedence. A config definition with the same id as a datapack book overrides it; every override is logged at INFO level so you can track which packs are being shadowed.
+
+`/reload` (server resource reload) rescans both datapack and config layers and produces a report. `/rpglore reload` (config-only reload) rescans only the `config/rpg_lore/books/` folder and merges it with the existing datapack layer; this is faster when you iterate on config books and datapacks are unchanged.
+
+Each book definition may include an optional `format_version` field (integer). Only version 1 is supported; omitting the field defaults to version 1. Any other value is an error and blocks the book from loading.
+
+Use `/rpglore validate` or `/rpglore validate <book_id>` (OP level 2) to validate definitions without reloading. The output reports the source of each book (datapack or config) and includes diagnostics for any syntax errors or missing click event targets.
+
 ## Lore Codex
 
 The Lore Codex is a soul-bound item that stores and tracks your lore book collection.

@@ -269,11 +269,16 @@ public class CodexTrackingData extends SavedData {
      * Uses the eligible set (not all book IDs) so that books switched to
      * codexExclude=true are also pruned.
      */
-    public void pruneStaleEntries(Set<String> codexEligibleIds) {
-        for (PlayerCodexData data : playerCodexes.values()) {
-            data.retainAll(codexEligibleIds);
+    /** @return the players whose codex state actually changed. */
+    public Set<UUID> pruneStaleEntries(Set<String> codexEligibleIds) {
+        Set<UUID> pruned = new java.util.HashSet<>();
+        for (Map.Entry<UUID, PlayerCodexData> entry : playerCodexes.entrySet()) {
+            if (entry.getValue().retainAll(codexEligibleIds)) {
+                pruned.add(entry.getKey());
+            }
         }
-        setDirty();
+        if (!pruned.isEmpty()) setDirty();
+        return pruned;
     }
 
     // --- Serialization ---
@@ -367,12 +372,14 @@ public class CodexTrackingData extends SavedData {
             discoveredAt.clear();
         }
 
-        void retainAll(Set<String> keepIds) {
-            collectedBookIds.retainAll(keepIds);
-            bookCopies.keySet().retainAll(keepIds);
-            readBookIds.retainAll(keepIds);
-            favoriteBookIds.retainAll(keepIds);
-            discoveredAt.keySet().retainAll(keepIds);
+        /** @return true when any of the five collections actually lost an entry. */
+        boolean retainAll(Set<String> keepIds) {
+            boolean changed = collectedBookIds.retainAll(keepIds);
+            changed |= bookCopies.keySet().retainAll(keepIds);
+            changed |= readBookIds.retainAll(keepIds);
+            changed |= favoriteBookIds.retainAll(keepIds);
+            changed |= discoveredAt.keySet().retainAll(keepIds);
+            return changed;
         }
 
         int collectedCount() {

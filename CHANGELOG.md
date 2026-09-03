@@ -27,6 +27,9 @@
 - **Reading a physical lore book marks it read in Codex** -- opening a lore book from your hand marks it as read in the Codex if that book is in your collection
 - **New client config options** -- `codex_display.rememberSearch` (default true) persists search text across Codex opens; `codex_display.showUnreadMarkers` (default true) toggles the unread dot indicator
 - **Return-to-Codex behavior** -- closing a book reader returns to the Codex screen with the same search, category, filter, sort, page, and keyboard selection preserved
+- **Datapack-driven lore definitions** -- books can now ship in datapacks at `data/<namespace>/rpg_lore/books/<path>.json`, with default ID `<namespace>:<path>` (unless the JSON declares `id` explicitly). Config definitions override datapack definitions with the same ID, logged at INFO level.
+- **Two-layer reload workflow** -- `/reload` (server resource reload) rescans both datapack and config layers; `/rpglore reload` (config-only) rescans only the config folder and merges with the existing datapack layer. Both report change counts, including a new overrides count showing how many config definitions shadow datapack ones.
+- **Auto-regenerating config README** -- `config/rpg_lore/books/_README.txt` now regenerates automatically when the documentation version increments, ensuring users have current field documentation without manual intervention.
 
 ## [2.1.2] - 2026-09-03
 
