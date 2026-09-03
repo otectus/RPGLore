@@ -11,5 +11,6 @@
   "rpg_lore.codex.read": "Dubbisi",
   "rpg_lore.codex.tooltip.collected": "Kan walitti qabame: %d / %d",
   "rpg_lore.codex.tooltip.duplicates_blocked": "Irra deddeebi'uu funaanuun dhorkamaa jira",
-  "rpg_lore.codex.no_physical_copy": "Kitaaba kana koppii qaamaa ni barbaachisa"
+  "rpg_lore.codex.no_physical_copy": "Kitaaba kana koppii qaamaa ni barbaachisa",
+  "curios.identifier.codex": "Koodeksii"
 }

@@ -11,5 +11,6 @@
   "rpg_lore.codex.read": "Darllen",
   "rpg_lore.codex.tooltip.collected": "Wedi\u2019u casglu: %d / %d",
   "rpg_lore.codex.tooltip.duplicates_blocked": "Rhwystro codi dyblygiadau",
-  "rpg_lore.codex.no_physical_copy": "Mae angen copi ffisegol o\u2019r llyfr hwn arnoch"
+  "rpg_lore.codex.no_physical_copy": "Mae angen copi ffisegol o\u2019r llyfr hwn arnoch",
+  "curios.identifier.codex": "Codecs"
 }

@@ -11,5 +11,6 @@
   "rpg_lore.codex.read": "\u010c\u00edta\u0165",
   "rpg_lore.codex.tooltip.collected": "Zozbieran\u00e9: %d / %d",
   "rpg_lore.codex.tooltip.duplicates_blocked": "Zber duplik\u00e1tov je blokovan\u00fd",
-  "rpg_lore.codex.no_physical_copy": "Potrebuje\u0161 fyzick\u00fa k\u00f3piu tejto knihy"
+  "rpg_lore.codex.no_physical_copy": "Potrebuje\u0161 fyzick\u00fa k\u00f3piu tejto knihy",
+  "curios.identifier.codex": "K\u00f3dex"
 }

@@ -11,5 +11,6 @@
   "rpg_lore.codex.read": "Las\u012bt",
   "rpg_lore.codex.tooltip.collected": "Sav\u0101kts: %d / %d",
   "rpg_lore.codex.tooltip.duplicates_blocked": "Dublik\u0101tu v\u0101k\u0161ana ir blo\u0137\u0113ta",
-  "rpg_lore.codex.no_physical_copy": "Jums ir nepiecie\u0161ama \u0161\u012bs gr\u0101matas fiziska kopija"
+  "rpg_lore.codex.no_physical_copy": "Jums ir nepiecie\u0161ama \u0161\u012bs gr\u0101matas fiziska kopija",
+  "curios.identifier.codex": "Kodekss"
 }

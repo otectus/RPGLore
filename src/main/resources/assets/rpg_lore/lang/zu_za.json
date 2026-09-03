@@ -11,5 +11,6 @@
   "rpg_lore.codex.read": "Funda",
   "rpg_lore.codex.tooltip.collected": "Okuqoqiwe: %d / %d",
   "rpg_lore.codex.tooltip.duplicates_blocked": "Ukucosha okuphindwayo kuvimbelwe",
-  "rpg_lore.codex.no_physical_copy": "Udinga ikhophi yangempela yale ncwadi"
+  "rpg_lore.codex.no_physical_copy": "Udinga ikhophi yangempela yale ncwadi",
+  "curios.identifier.codex": "Ikhodi"
 }

@@ -11,5 +11,6 @@
   "rpg_lore.codex.read": "L\u00e6s",
   "rpg_lore.codex.tooltip.collected": "Indsamlet: %d / %d",
   "rpg_lore.codex.tooltip.duplicates_blocked": "Blokerer opsamling af dubletter",
-  "rpg_lore.codex.no_physical_copy": "Du skal bruge en fysisk kopi af denne bog"
+  "rpg_lore.codex.no_physical_copy": "Du skal bruge en fysisk kopi af denne bog",
+  "curios.identifier.codex": "Kodeks"
 }

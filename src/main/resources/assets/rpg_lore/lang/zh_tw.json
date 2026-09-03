@@ -11,5 +11,6 @@
   "rpg_lore.codex.read": "\u95b1\u8b80",
   "rpg_lore.codex.tooltip.collected": "\u5df2\u6536\u96c6\uff1a%d / %d",
   "rpg_lore.codex.tooltip.duplicates_blocked": "\u6b63\u5728\u6514\u622a\u91cd\u8907\u62fe\u53d6",
-  "rpg_lore.codex.no_physical_copy": "\u4f60\u9700\u8981\u9019\u672c\u66f8\u7684\u5be6\u9ad4\u526f\u672c"
+  "rpg_lore.codex.no_physical_copy": "\u4f60\u9700\u8981\u9019\u672c\u66f8\u7684\u5be6\u9ad4\u526f\u672c",
+  "curios.identifier.codex": "\u5178\u7c4d"
 }

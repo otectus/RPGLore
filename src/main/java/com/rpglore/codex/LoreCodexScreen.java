@@ -87,10 +87,20 @@ public class LoreCodexScreen extends Screen {
     // Page nav button regions (rendered manually from texture sprites)
     private int prevBtnX, prevBtnY, nextBtnX, nextBtnY;
 
+    // Built once instead of per frame — render() runs every tick
+    private final Component styledTitle;
+    private final String readLabel;
+    private final Component uncollectedTitle;
+
     public LoreCodexScreen(CodexScreenData data) {
         super(Component.translatable("rpg_lore.codex.title"));
         this.data = data;
         this.filteredEntries = new ArrayList<>(data.catalog);
+        this.styledTitle = Component.translatable("rpg_lore.codex.title").withStyle(
+                Style.EMPTY.withBold(true).withColor(TextColor.fromRgb(COLOR_TITLE)));
+        this.readLabel = Component.translatable("rpg_lore.codex.read").getString();
+        this.uncollectedTitle = Component.translatable("rpg_lore.codex.uncollected")
+                .withStyle(Style.EMPTY.withItalic(true).withColor(TextColor.fromRgb(COLOR_UNCOLLECTED)));
     }
 
     public void refreshData(CodexScreenData data) {
@@ -166,11 +176,9 @@ public class LoreCodexScreen extends Screen {
         int y = textTop;
 
         // Title
-        Component title = Component.translatable("rpg_lore.codex.title").withStyle(
-                Style.EMPTY.withBold(true).withColor(TextColor.fromRgb(COLOR_TITLE)));
-        int titleWidth = this.font.width(title);
+        int titleWidth = this.font.width(styledTitle);
         int parchCenterX = guiLeft + PARCHMENT_X + PARCHMENT_WIDTH / 2;
-        graphics.drawString(this.font, title, parchCenterX - titleWidth / 2, y, COLOR_TITLE, false);
+        graphics.drawString(this.font, styledTitle, parchCenterX - titleWidth / 2, y, COLOR_TITLE, false);
         y += 12;
 
         // Collection counter
@@ -249,7 +257,7 @@ public class LoreCodexScreen extends Screen {
             }
 
             // Read label
-            String readStr = Component.translatable("rpg_lore.codex.read").getString();
+            String readStr = readLabel;
             int readW = this.font.width(readStr);
             int readX = x + TEXT_WIDTH - readW - (copyReserve > 0 ? copyReserve + 2 : 0);
             boolean hoverRead = mouseX >= readX && mouseX < readX + readW
@@ -276,8 +284,7 @@ public class LoreCodexScreen extends Screen {
             titleComp = Component.literal(entry.title())
                     .withStyle(Style.EMPTY.withColor(TextColor.fromRgb(COLOR_UNCOLLECTED)));
         } else {
-            titleComp = Component.translatable("rpg_lore.codex.uncollected")
-                    .withStyle(Style.EMPTY.withItalic(true).withColor(TextColor.fromRgb(COLOR_UNCOLLECTED)));
+            titleComp = uncollectedTitle;
         }
 
         // Truncate if needed

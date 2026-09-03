@@ -11,5 +11,6 @@
   "rpg_lore.codex.read": "K\u00e0w\u00e9",
   "rpg_lore.codex.tooltip.collected": "T\u00ed a k\u00f3: %d / %d",
   "rpg_lore.codex.tooltip.duplicates_blocked": "A \u0144 d\u00ed gba \u00e0d\u00e1k\u00f2 l\u00f3w\u00f3",
-  "rpg_lore.codex.no_physical_copy": "O n\u00edl\u00f2 \u00e0d\u00e0k\u00f2 gangan ti \u00ecw\u00e9 y\u00ec\u00ed"
+  "rpg_lore.codex.no_physical_copy": "O n\u00edl\u00f2 \u00e0d\u00e0k\u00f2 gangan ti \u00ecw\u00e9 y\u00ec\u00ed",
+  "curios.identifier.codex": "K\u00f3d\u025b\u0301k\u00ecs\u00ec"
 }

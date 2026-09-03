@@ -71,8 +71,8 @@ public class RpgLoreMod {
         if (event.getTabKey() == CreativeModeTabs.TOOLS_AND_UTILITIES) {
             event.accept(ModItems.LORE_BOOK);
             // Server config may not be loaded yet if tabs build outside a world;
-            // reading an unloaded config value throws, so default to showing the Codex
-            if (!ServerConfig.SPEC.isLoaded() || ServerConfig.CODEX_ENABLED.get()) {
+            // reading an unloaded config value throws, so hide the Codex until it is
+            if (ServerConfig.SPEC.isLoaded() && ServerConfig.CODEX_ENABLED.get()) {
                 event.accept(ModItems.LORE_CODEX);
             }
         }

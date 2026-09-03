@@ -11,5 +11,6 @@
   "rpg_lore.codex.read": "Lesa",
   "rpg_lore.codex.tooltip.collected": "Safna\u00f0: %d / %d",
   "rpg_lore.codex.tooltip.duplicates_blocked": "Tví­tekjum loka\u00f0",
-  "rpg_lore.codex.no_physical_copy": "\u00de\u00fa \u00fearft efnislegt eintak af \u00feessari b\u00f3k"
+  "rpg_lore.codex.no_physical_copy": "\u00de\u00fa \u00fearft efnislegt eintak af \u00feessari b\u00f3k",
+  "curios.identifier.codex": "K\u00f3dex"
 }

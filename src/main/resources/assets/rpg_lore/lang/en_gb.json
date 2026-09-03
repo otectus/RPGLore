@@ -11,5 +11,6 @@
   "rpg_lore.codex.read": "Read",
   "rpg_lore.codex.tooltip.collected": "Collected: %d / %d",
   "rpg_lore.codex.tooltip.duplicates_blocked": "Blocking duplicate pickups",
-  "rpg_lore.codex.no_physical_copy": "You need a physical copy of this book"
+  "rpg_lore.codex.no_physical_copy": "You need a physical copy of this book",
+  "curios.identifier.codex": "Codex"
 }

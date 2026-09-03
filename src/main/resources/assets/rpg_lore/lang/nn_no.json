@@ -11,5 +11,6 @@
   "rpg_lore.codex.read": "Les",
   "rpg_lore.codex.tooltip.collected": "Samla: %d / %d",
   "rpg_lore.codex.tooltip.duplicates_blocked": "Blokkerer duplikat",
-  "rpg_lore.codex.no_physical_copy": "Du treng ein fysisk kopi av denne boka"
+  "rpg_lore.codex.no_physical_copy": "Du treng ein fysisk kopi av denne boka",
+  "curios.identifier.codex": "Kodeks"
 }

@@ -11,5 +11,6 @@
   "rpg_lore.codex.read": "Irakurri",
   "rpg_lore.codex.tooltip.collected": "Bildutakoak: %d / %d",
   "rpg_lore.codex.tooltip.duplicates_blocked": "Bikoiztuen bilketa blokeatzen",
-  "rpg_lore.codex.no_physical_copy": "Liburu honen kopia fisikoa behar duzu"
+  "rpg_lore.codex.no_physical_copy": "Liburu honen kopia fisikoa behar duzu",
+  "curios.identifier.codex": "Kodexea"
 }

@@ -11,5 +11,6 @@
   "rpg_lore.codex.read": "Basahin",
   "rpg_lore.codex.tooltip.collected": "Nakolekta: %d / %d",
   "rpg_lore.codex.tooltip.duplicates_blocked": "Hinaharangan ang pagpulot ng duplikado",
-  "rpg_lore.codex.no_physical_copy": "Kailangan mo ng pisikal na kopya ng aklat na ito"
+  "rpg_lore.codex.no_physical_copy": "Kailangan mo ng pisikal na kopya ng aklat na ito",
+  "curios.identifier.codex": "Kodeks"
 }

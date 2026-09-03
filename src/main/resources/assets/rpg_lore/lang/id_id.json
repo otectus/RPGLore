@@ -11,5 +11,6 @@
   "rpg_lore.codex.read": "Baca",
   "rpg_lore.codex.tooltip.collected": "Terkumpul: %d / %d",
   "rpg_lore.codex.tooltip.duplicates_blocked": "Pengambilan duplikat diblokir",
-  "rpg_lore.codex.no_physical_copy": "Anda memerlukan salinan fisik buku ini"
+  "rpg_lore.codex.no_physical_copy": "Anda memerlukan salinan fisik buku ini",
+  "curios.identifier.codex": "Kodeks"
 }

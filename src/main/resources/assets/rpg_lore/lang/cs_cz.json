@@ -11,5 +11,6 @@
   "rpg_lore.codex.read": "\u010c\u00edst",
   "rpg_lore.codex.tooltip.collected": "Sebr\u00e1no: %d / %d",
   "rpg_lore.codex.tooltip.duplicates_blocked": "Sb\u011br duplik\u00e1t\u016f je blokov\u00e1n",
-  "rpg_lore.codex.no_physical_copy": "Pot\u0159ebuje\u0161 fyzickou kopii t\u00e9to knihy"
+  "rpg_lore.codex.no_physical_copy": "Pot\u0159ebuje\u0161 fyzickou kopii t\u00e9to knihy",
+  "curios.identifier.codex": "Kodex"
 }

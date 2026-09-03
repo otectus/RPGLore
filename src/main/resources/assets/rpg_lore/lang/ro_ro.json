@@ -11,5 +11,6 @@
   "rpg_lore.codex.read": "Cite\u0219te",
   "rpg_lore.codex.tooltip.collected": "Colectate: %d / %d",
   "rpg_lore.codex.tooltip.duplicates_blocked": "Colectarea duplicatelor este blocat\u0103",
-  "rpg_lore.codex.no_physical_copy": "Ai nevoie de o copie fizic\u0103 a acestei c\u0103r\u021bi"
+  "rpg_lore.codex.no_physical_copy": "Ai nevoie de o copie fizic\u0103 a acestei c\u0103r\u021bi",
+  "curios.identifier.codex": "Codex"
 }

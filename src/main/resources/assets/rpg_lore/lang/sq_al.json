@@ -11,5 +11,6 @@
   "rpg_lore.codex.read": "Lexo",
   "rpg_lore.codex.tooltip.collected": "T\u00eb mbledhura: %d / %d",
   "rpg_lore.codex.tooltip.duplicates_blocked": "Mbledhja e dublikatave \u00ebsht\u00eb bllokuar",
-  "rpg_lore.codex.no_physical_copy": "Ju duhet nj\u00eb kopje fizike e k\u00ebtij libri"
+  "rpg_lore.codex.no_physical_copy": "Ju duhet nj\u00eb kopje fizike e k\u00ebtij libri",
+  "curios.identifier.codex": "Kodeku"
 }

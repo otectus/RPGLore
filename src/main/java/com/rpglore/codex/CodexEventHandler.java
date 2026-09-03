@@ -12,14 +12,15 @@ import net.minecraft.nbt.CompoundTag;
 import net.minecraft.nbt.Tag;
 import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.world.entity.player.Inventory;
-import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.level.GameRules;
 import net.minecraftforge.event.entity.item.ItemTossEvent;
+import net.minecraftforge.event.entity.living.LivingDeathEvent;
 import net.minecraftforge.event.entity.living.LivingDropsEvent;
 import net.minecraftforge.event.entity.player.EntityItemPickupEvent;
 import net.minecraftforge.event.entity.player.PlayerEvent;
 import net.minecraftforge.eventbus.api.Event;
+import net.minecraftforge.eventbus.api.EventPriority;
 import net.minecraftforge.eventbus.api.SubscribeEvent;
 
 import java.util.Optional;
@@ -33,64 +34,86 @@ import java.util.Optional;
  */
 public class CodexEventHandler {
 
-    @SubscribeEvent
-    public static void onPlayerClone(PlayerEvent.Clone event) {
-        if (!event.isWasDeath()) return;
+    /**
+     * Pulls the Codex out of the dying player before the inventory is emptied into
+     * drops, and parks it in save data until the respawn clone arrives.
+     */
+    @SubscribeEvent(priority = EventPriority.LOWEST)
+    public static void onLivingDeath(LivingDeathEvent event) {
+        if (!(event.getEntity() instanceof ServerPlayer player)) return;
         if (!ServerConfig.CODEX_ENABLED.get() || !ServerConfig.CODEX_SOULBOUND.get()) return;
 
-        // With keepInventory, vanilla (and Curios) already carried everything over;
-        // restoring on top of that would duplicate the Codex.
-        if (event.getEntity().level().getGameRules().getBoolean(GameRules.RULE_KEEPINVENTORY)) return;
-        if (!LoreCodexItem.findCodex(event.getEntity()).isEmpty()) return;
+        // With keepInventory, vanilla (and Curios) already carry everything over;
+        // stashing on top of that would duplicate the Codex.
+        if (player.level().getGameRules().getBoolean(GameRules.RULE_KEEPINVENTORY)) return;
 
-        event.getOriginal().reviveCaps();
+        CodexTrackingData data = CodexTrackingData.getInstance();
+        if (data == null) return;
 
-        try {
-            // onPlayerDrops parked the Codex back in the dead player's inventory
-            Inventory original = event.getOriginal().getInventory();
-            Inventory newInv = event.getEntity().getInventory();
-
-            for (int i = 0; i < original.getContainerSize(); i++) {
-                ItemStack stack = original.getItem(i);
-                if (stack.getItem() instanceof LoreCodexItem) {
-                    original.setItem(i, ItemStack.EMPTY);
-                    if (!newInv.add(stack)) {
-                        RpgLoreMod.LOGGER.warn("Failed to restore Codex to new inventory for {}",
-                                event.getEntity().getName().getString());
-                    }
-                    return;
-                }
+        Inventory inv = player.getInventory();
+        for (int i = 0; i < inv.getContainerSize(); i++) {
+            ItemStack stack = inv.getItem(i);
+            if (stack.getItem() instanceof LoreCodexItem) {
+                inv.setItem(i, ItemStack.EMPTY);
+                data.stashCodex(player.getUUID(), stack, null, 0);
+                return;
             }
+        }
 
-            // Fallback: Codex still sitting in the dead player's Curios slots
-            // (e.g. another mod suppressed the curio drop)
-            if (CuriosCompat.isLoaded()) {
-                ItemStack curioCodex = CuriosCompat.findCodexInCurios(event.getOriginal());
-                if (!curioCodex.isEmpty()) {
-                    if (!newInv.add(curioCodex.copy())) {
-                        RpgLoreMod.LOGGER.warn("Failed to restore Curios Codex to new inventory for {}",
-                                event.getEntity().getName().getString());
-                    }
-                }
+        // Otherwise the Codex is worn in a Curios slot — remember which one
+        if (CuriosCompat.isLoaded()) {
+            CuriosCompat.ExtractedCurio extracted = CuriosCompat.extractCodexFromCurios(player);
+            if (extracted != null) {
+                data.stashCodex(player.getUUID(), extracted.stack(), extracted.slotId(), extracted.index());
             }
-        } finally {
-            event.getOriginal().invalidateCaps();
         }
     }
 
-    @SubscribeEvent
+    @SubscribeEvent(priority = EventPriority.LOWEST)
     public static void onPlayerDrops(LivingDropsEvent event) {
-        if (!(event.getEntity() instanceof Player player)) return;
+        if (!(event.getEntity() instanceof ServerPlayer player)) return;
         if (!ServerConfig.CODEX_ENABLED.get() || !ServerConfig.CODEX_SOULBOUND.get()) return;
 
-        // By the time this fires, the dying player's inventory has already been
-        // emptied into the drops list. Removing the Codex drop without putting it
-        // somewhere would delete it — park it back in the dead player's (now empty)
-        // inventory, where onPlayerClone picks it up for the respawned player.
+        CodexTrackingData data = CodexTrackingData.getInstance();
+        if (data == null) return;
+
+        // Safety net: if onLivingDeath missed the Codex (another mod moved it), stash
+        // it from the drops list rather than letting it fall on the ground.
         event.getDrops().removeIf(drop -> {
-            ItemStack stack = drop.getItem();
-            return stack.getItem() instanceof LoreCodexItem && player.getInventory().add(stack);
+            if (!(drop.getItem().getItem() instanceof LoreCodexItem)) return false;
+            RpgLoreMod.LOGGER.warn("Codex reached death drops for {} — stashing via safety net",
+                    player.getName().getString());
+            data.stashCodex(player.getUUID(), drop.getItem(), null, 0);
+            return true;
         });
+    }
+
+    @SubscribeEvent(priority = EventPriority.LOWEST)
+    public static void onPlayerClone(PlayerEvent.Clone event) {
+        if (!event.isWasDeath()) return;
+        if (!(event.getEntity() instanceof ServerPlayer player)) return;
+
+        restoreStashedCodex(player);
+    }
+
+    /** Gives a stashed Codex back, preferring the Curios slot it was worn in. */
+    private static void restoreStashedCodex(ServerPlayer player) {
+        CodexTrackingData data = CodexTrackingData.getInstance();
+        if (data == null) return;
+
+        CodexTrackingData.StashedCodex stash = data.popStashedCodex(player.getUUID());
+        if (stash == null) return;
+
+        if (!LoreCodexItem.findCodex(player).isEmpty()) {
+            RpgLoreMod.LOGGER.warn("Discarding stashed Codex for {} — player already has one",
+                    player.getName().getString());
+            return;
+        }
+
+        if (stash.curioSlot() == null || !CuriosCompat.isLoaded()
+                || !CuriosCompat.equipCodexInCurios(player, stash.stack(), stash.curioSlot(), stash.curioIndex())) {
+            player.getInventory().placeItemBackInInventory(stash.stack());
+        }
     }
 
     @SubscribeEvent
@@ -105,8 +128,14 @@ public class CodexEventHandler {
 
     @SubscribeEvent
     public static void onPlayerLogin(PlayerEvent.PlayerLoggedInEvent event) {
-        if (!ServerConfig.CODEX_ENABLED.get()) return;
         if (!(event.getEntity() instanceof ServerPlayer serverPlayer)) return;
+
+        // Catch a stash left behind by a logout between death and respawn
+        if (!serverPlayer.isDeadOrDying()) {
+            restoreStashedCodex(serverPlayer);
+        }
+
+        if (!ServerConfig.CODEX_ENABLED.get()) return;
 
         CodexService service = CodexService.get();
         if (service == null) return;

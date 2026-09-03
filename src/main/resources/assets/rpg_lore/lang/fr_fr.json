@@ -11,5 +11,6 @@
   "rpg_lore.codex.read": "Lire",
   "rpg_lore.codex.tooltip.collected": "Collect\u00e9s : %d / %d",
   "rpg_lore.codex.tooltip.duplicates_blocked": "Blocage de la collecte des doublons",
-  "rpg_lore.codex.no_physical_copy": "Vous avez besoin d\u2019un exemplaire physique de ce livre"
+  "rpg_lore.codex.no_physical_copy": "Vous avez besoin d\u2019un exemplaire physique de ce livre",
+  "curios.identifier.codex": "Codex"
 }

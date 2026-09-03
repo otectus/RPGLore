@@ -11,5 +11,6 @@
   "rpg_lore.codex.read": "Leer",
   "rpg_lore.codex.tooltip.collected": "Recopilados: %d / %d",
   "rpg_lore.codex.tooltip.duplicates_blocked": "Bloqueando recogida de duplicados",
-  "rpg_lore.codex.no_physical_copy": "Necesitas una copia f\u00edsica de este libro"
+  "rpg_lore.codex.no_physical_copy": "Necesitas una copia f\u00edsica de este libro",
+  "curios.identifier.codex": "C\u00f3dice"
 }

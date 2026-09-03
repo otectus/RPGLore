@@ -11,5 +11,6 @@
   "rpg_lore.codex.read": "Skaityti",
   "rpg_lore.codex.tooltip.collected": "Surinkta: %d / %d",
   "rpg_lore.codex.tooltip.duplicates_blocked": "Dublikat\u0173 rinkimas u\u017eblokuotas",
-  "rpg_lore.codex.no_physical_copy": "Jums reikia fizin\u0117s \u0161ios knygos kopijos"
+  "rpg_lore.codex.no_physical_copy": "Jums reikia fizin\u0117s \u0161ios knygos kopijos",
+  "curios.identifier.codex": "Kodeksas"
 }

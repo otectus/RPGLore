@@ -11,5 +11,6 @@
   "rpg_lore.codex.read": "Lees",
   "rpg_lore.codex.tooltip.collected": "Versamel: %d / %d",
   "rpg_lore.codex.tooltip.duplicates_blocked": "Duplikate word geblokkeer",
-  "rpg_lore.codex.no_physical_copy": "Jy het 'n fisiese kopie van hierdie boek nodig"
+  "rpg_lore.codex.no_physical_copy": "Jy het 'n fisiese kopie van hierdie boek nodig",
+  "curios.identifier.codex": "Kodeks"
 }

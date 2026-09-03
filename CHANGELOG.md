@@ -1,5 +1,16 @@
 # Changelog
 
+## [2.1.2] - 2026-09-03
+
+### Bug Fixes
+- **Soulbound Codex properly restored through death** -- the Codex is now parked in persistent tracking data during `onLivingDeath` (before the inventory is emptied into drops) and restored on respawn via `onPlayerClone` or on the next login via `onPlayerLogin`, preserving the Curios slot it was equipped in when possible. `keepInventory` skips stashing entirely (vanilla and Curios already carry everything over). A safety net in `onPlayerDrops` catches any Codex that reaches the drop list.
+
+### Improvements
+- **Curios slot integration hardened** -- new `extractCodexFromCurios` and `equipCodexInCurios` helpers in `CuriosCompat` improve slot tracking and restoration.
+- **Creative tab no longer reads unloaded server config** -- guarded `codex.enabled` access with `SPEC.isLoaded()` when the tab builds outside a world.
+- **Codex screen components built once** -- title, "Read" label, and uncollected-title components are now built in the constructor instead of every render frame.
+- **Curios slot properly localized** -- new translation key `curios.identifier.codex` adds localization support for all 60 languages.
+
 ## [2.1.1] - 2026-07-11
 
 ### Critical Bug Fixes

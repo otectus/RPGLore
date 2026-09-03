@@ -11,5 +11,6 @@
   "rpg_lore.codex.read": "G\u1ee5\u1ecd",
   "rpg_lore.codex.tooltip.collected": "Anakp\u1ecdtara: %d / %d",
   "rpg_lore.codex.tooltip.duplicates_blocked": "A na-egbochi \u1ecbch\u1ecbkp\u1ee5 okpuru",
-  "rpg_lore.codex.no_physical_copy": "\u1eca ch\u1ecdr\u1ecd otu akw\u1ee5kw\u1ecd a n'aka"
+  "rpg_lore.codex.no_physical_copy": "\u1eca ch\u1ecdr\u1ecd otu akw\u1ee5kw\u1ecd a n'aka",
+  "curios.identifier.codex": "Kodeks\u1ecb"
 }

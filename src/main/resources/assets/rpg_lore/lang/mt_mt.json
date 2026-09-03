@@ -11,5 +11,6 @@
   "rpg_lore.codex.read": "Aqra",
   "rpg_lore.codex.tooltip.collected": "Mi\u0121bura: %d / %d",
   "rpg_lore.codex.tooltip.duplicates_blocked": "Il-\u0121bir tad-duplikati huwa mblukkat",
-  "rpg_lore.codex.no_physical_copy": "G\u0127andek b\u017conn ta\u2019 kopja fi\u017cika ta\u2019 dan il-ktieb"
+  "rpg_lore.codex.no_physical_copy": "G\u0127andek b\u017conn ta\u2019 kopja fi\u017cika ta\u2019 dan il-ktieb",
+  "curios.identifier.codex": "Kodi\u010bi"
 }

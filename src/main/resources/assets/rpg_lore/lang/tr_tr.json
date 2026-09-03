@@ -11,5 +11,6 @@
   "rpg_lore.codex.read": "Oku",
   "rpg_lore.codex.tooltip.collected": "Toplanan: %d / %d",
   "rpg_lore.codex.tooltip.duplicates_blocked": "Kopya toplama engelleniyor",
-  "rpg_lore.codex.no_physical_copy": "Bu kitab\u0131n fiziksel bir kopyas\u0131na ihtiyac\u0131n\u0131z var"
+  "rpg_lore.codex.no_physical_copy": "Bu kitab\u0131n fiziksel bir kopyas\u0131na ihtiyac\u0131n\u0131z var",
+  "curios.identifier.codex": "Kodeks"
 }

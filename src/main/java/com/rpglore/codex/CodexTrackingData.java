@@ -6,6 +6,7 @@ import net.minecraft.nbt.ListTag;
 import net.minecraft.nbt.StringTag;
 import net.minecraft.nbt.Tag;
 import net.minecraft.server.level.ServerLevel;
+import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.level.saveddata.SavedData;
 
 import javax.annotation.Nullable;
@@ -166,6 +167,55 @@ public class CodexTrackingData extends SavedData {
         setDirty();
     }
 
+    // --- Death stash ---
+
+    /**
+     * Parks a soul-bound Codex in save data until the player respawns.
+     * A non-null curioSlot records the Curios slot it was equipped in.
+     */
+    public void stashCodex(UUID player, ItemStack stack, @Nullable String curioSlot, int curioIndex) {
+        PlayerCodexData data = playerCodexes.computeIfAbsent(player, k -> new PlayerCodexData());
+        if (data.pendingCodex != null) {
+            RpgLoreMod.LOGGER.warn("Overwriting existing stashed Codex for {} — duplicate collapsed", player);
+        }
+
+        CompoundTag stashTag = new CompoundTag();
+        stashTag.put("stack", stack.save(new CompoundTag()));
+        if (curioSlot != null) {
+            stashTag.putString("curio_slot", curioSlot);
+            stashTag.putInt("curio_index", curioIndex);
+        }
+
+        data.pendingCodex = stashTag;
+        setDirty();
+    }
+
+    /**
+     * Removes and returns the stashed Codex, if any.
+     */
+    @Nullable
+    public StashedCodex popStashedCodex(UUID player) {
+        PlayerCodexData data = playerCodexes.get(player);
+        if (data == null || data.pendingCodex == null) return null;
+
+        CompoundTag stashTag = data.pendingCodex;
+        data.pendingCodex = null;
+        setDirty();
+
+        ItemStack stack = ItemStack.of(stashTag.getCompound("stack"));
+        if (stack.isEmpty()) return null;
+
+        String curioSlot = stashTag.contains("curio_slot", Tag.TAG_STRING)
+                ? stashTag.getString("curio_slot")
+                : null;
+        return new StashedCodex(stack, curioSlot, stashTag.getInt("curio_index"));
+    }
+
+    public boolean hasStashedCodex(UUID player) {
+        PlayerCodexData data = playerCodexes.get(player);
+        return data != null && data.pendingCodex != null;
+    }
+
     // --- Maintenance ---
 
     /**
@@ -207,6 +257,10 @@ public class CodexTrackingData extends SavedData {
                 pData.preventDuplicatePickup = playerTag.getBoolean("prevent_duplicates");
                 pData.hasEverReceivedCodex = playerTag.getBoolean("has_codex");
 
+                if (playerTag.contains("pending_codex", Tag.TAG_COMPOUND)) {
+                    pData.pendingCodex = playerTag.getCompound("pending_codex");
+                }
+
                 data.playerCodexes.put(uuid, pData);
             } catch (IllegalArgumentException e) {
                 RpgLoreMod.LOGGER.warn("Invalid UUID in codex tracking data: {}", uuidStr);
@@ -237,6 +291,10 @@ public class CodexTrackingData extends SavedData {
             playerTag.putBoolean("prevent_duplicates", pData.preventDuplicatePickup);
             playerTag.putBoolean("has_codex", pData.hasEverReceivedCodex);
 
+            if (pData.pendingCodex != null) {
+                playerTag.put("pending_codex", pData.pendingCodex);
+            }
+
             players.put(entry.getKey().toString(), playerTag);
         }
         tag.put("players", players);
@@ -259,5 +317,11 @@ public class CodexTrackingData extends SavedData {
         final Map<String, Integer> bookCopies = new HashMap<>();
         boolean preventDuplicatePickup = false;
         boolean hasEverReceivedCodex = false;
+        /** Soul-bound Codex parked at death, restored on respawn. */
+        @Nullable
+        CompoundTag pendingCodex = null;
     }
+
+    /** A stashed Codex plus the Curios slot it should be returned to, if any. */
+    public record StashedCodex(ItemStack stack, @Nullable String curioSlot, int curioIndex) {}
 }

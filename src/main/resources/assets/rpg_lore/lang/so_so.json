@@ -11,5 +11,6 @@
   "rpg_lore.codex.read": "Akhri",
   "rpg_lore.codex.tooltip.collected": "La ururiyey: %d / %d",
   "rpg_lore.codex.tooltip.duplicates_blocked": "Qaadista nuqullada waa la xannibay",
-  "rpg_lore.codex.no_physical_copy": "Waxaad u baahan tahay nuqul jireed ah oo buuggan ah"
+  "rpg_lore.codex.no_physical_copy": "Waxaad u baahan tahay nuqul jireed ah oo buuggan ah",
+  "curios.identifier.codex": "Kodekis"
 }

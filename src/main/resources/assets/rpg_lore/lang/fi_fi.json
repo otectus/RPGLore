@@ -11,5 +11,6 @@
   "rpg_lore.codex.read": "Lue",
   "rpg_lore.codex.tooltip.collected": "Ker\u00e4tty: %d / %d",
   "rpg_lore.codex.tooltip.duplicates_blocked": "Kaksoiskappaleiden poiminta estetty",
-  "rpg_lore.codex.no_physical_copy": "Tarvitset fyysisen kopion t\u00e4st\u00e4 kirjasta"
+  "rpg_lore.codex.no_physical_copy": "Tarvitset fyysisen kopion t\u00e4st\u00e4 kirjasta",
+  "curios.identifier.codex": "Koodeksi"
 }

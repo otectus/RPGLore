@@ -11,5 +11,6 @@
   "rpg_lore.codex.read": "Beri",
   "rpg_lore.codex.tooltip.collected": "Zbranih: %d / %d",
   "rpg_lore.codex.tooltip.duplicates_blocked": "Pobiranje dvojnikov je blokirano",
-  "rpg_lore.codex.no_physical_copy": "Potrebujete fizi\u010dno kopijo te knjige"
+  "rpg_lore.codex.no_physical_copy": "Potrebujete fizi\u010dno kopijo te knjige",
+  "curios.identifier.codex": "Kodeks"
 }

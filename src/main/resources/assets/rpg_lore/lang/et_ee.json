@@ -11,5 +11,6 @@
   "rpg_lore.codex.read": "Loe",
   "rpg_lore.codex.tooltip.collected": "Kogutud: %d / %d",
   "rpg_lore.codex.tooltip.duplicates_blocked": "Duplikaatide korjamine on blokeeritud",
-  "rpg_lore.codex.no_physical_copy": "Vajate selle raamatu f\u00fc\u00fcsilist koopiat"
+  "rpg_lore.codex.no_physical_copy": "Vajate selle raamatu f\u00fc\u00fcsilist koopiat",
+  "curios.identifier.codex": "Koodeks"
 }
