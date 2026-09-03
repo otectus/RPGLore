@@ -1,21 +1,26 @@
 package com.rpglore.lore;
 
 import com.mojang.blaze3d.vertex.PoseStack;
+import com.rpglore.codex.LoreCodexClientHelper;
 import net.minecraft.ChatFormatting;
 import net.minecraft.client.gui.GuiGraphics;
 import net.minecraft.client.gui.components.Renderable;
 import net.minecraft.client.gui.screens.inventory.BookViewScreen;
 import net.minecraft.nbt.CompoundTag;
+import net.minecraft.network.chat.ClickEvent;
 import net.minecraft.network.chat.Component;
 import net.minecraft.network.chat.FormattedText;
 import net.minecraft.network.chat.Style;
 import net.minecraft.network.chat.TextColor;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.util.FormattedCharSequence;
+import net.minecraft.util.Mth;
 import net.minecraft.world.item.ItemStack;
 import net.minecraftforge.api.distmarker.Dist;
 import net.minecraftforge.api.distmarker.OnlyIn;
 
+import javax.annotation.Nullable;
+import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 
@@ -50,6 +55,7 @@ public class LoreBookScreen extends BookViewScreen {
     // --- Title page layout ---
     private static final float TITLE_SCALE = 1.5f;
     private static final String ORNAMENT = "* * *";
+    private static final String ELLIPSIS = "...";
 
     // --- Book metadata (extracted from NBT) ---
     private final String bookTitle;
@@ -145,6 +151,9 @@ public class LoreBookScreen extends BookViewScreen {
             renderTitlePage(graphics, bookLeft, bookTop);
         } else {
             renderContentPage(graphics, bookLeft, bookTop);
+            // Hover tooltips for page components (title page has no clickable text)
+            graphics.renderComponentHoverEffect(this.font,
+                    getClickedComponentStyleAt(mouseX, mouseY), mouseX, mouseY);
         }
 
         // Render widgets (navigation buttons, Done button) on top
@@ -161,29 +170,46 @@ public class LoreBookScreen extends BookViewScreen {
 
         PoseStack pose = graphics.pose();
 
-        // --- Title (scaled up, bold, centered) ---
+        // --- Title (scaled up, bold, centered, at most two lines) ---
         if (!bookTitle.isEmpty()) {
-            Component titleComp = Component.literal(bookTitle)
-                    .withStyle(Style.EMPTY.withBold(true).withColor(TextColor.fromRgb(titleColorRgb)));
+            Style titleStyle = Style.EMPTY.withBold(true).withColor(TextColor.fromRgb(titleColorRgb));
 
-            int titleWidth = this.font.width(titleComp);
-            float scaledWidth = titleWidth * TITLE_SCALE;
+            // Largest scale step at which the title wraps to two lines or fewer
+            float scaleStep = BookTextLayout.chooseTitleScale(TEXT_WIDTH, TITLE_SCALE,
+                    wrapWidth -> this.font.getSplitter().splitLines(bookTitle, wrapWidth, titleStyle).size());
+            int wrapWidth = BookTextLayout.titleWrapWidth(TEXT_WIDTH, TITLE_SCALE, scaleStep);
 
-            // If the scaled title is wider than the text area, reduce scale to fit
-            float effectiveScale = TITLE_SCALE;
-            if (scaledWidth > TEXT_WIDTH) {
-                effectiveScale = (float) TEXT_WIDTH / titleWidth;
+            List<FormattedText> split = this.font.getSplitter().splitLines(bookTitle, wrapWidth, titleStyle);
+            List<String> lines = new ArrayList<>(BookTextLayout.MAX_TITLE_LINES);
+            for (int i = 0; i < Math.min(split.size(), BookTextLayout.MAX_TITLE_LINES); i++) {
+                lines.add(split.get(i).getString());
+            }
+            if (lines.isEmpty()) lines.add(bookTitle);
+
+            // Still too long at the smallest scale: ellipsize the last drawn line
+            // rather than shrinking the title into illegibility.
+            if (split.size() > BookTextLayout.MAX_TITLE_LINES) {
+                int last = lines.size() - 1;
+                int room = Math.max(wrapWidth - this.font.width(ELLIPSIS), 0);
+                lines.set(last, this.font.plainSubstrByWidth(lines.get(last), room) + ELLIPSIS);
             }
 
-            // Vertical position: roughly 35% down the text area
-            float titleDrawY = textCenterY - 20;
+            float effectiveScale = TITLE_SCALE * scaleStep;
+            float lineHeight = 9 * effectiveScale;
+            // The last line keeps the vertical position a single-line title has
+            // always used, so the ornament and author below stay put.
+            float firstLineY = (textCenterY - 20) - (lines.size() - 1) * lineHeight;
 
-            pose.pushPose();
-            float titleDrawX = textCenterX - (titleWidth * effectiveScale) / 2.0f;
-            pose.translate(titleDrawX, titleDrawY, 0);
-            pose.scale(effectiveScale, effectiveScale, 1.0f);
-            graphics.drawString(this.font, titleComp, 0, 0, titleColorRgb, false);
-            pose.popPose();
+            for (int i = 0; i < lines.size(); i++) {
+                Component lineComp = Component.literal(lines.get(i)).withStyle(titleStyle);
+                float lineWidth = this.font.width(lineComp) * effectiveScale;
+
+                pose.pushPose();
+                pose.translate(textCenterX - lineWidth / 2.0f, firstLineY + i * lineHeight, 0);
+                pose.scale(effectiveScale, effectiveScale, 1.0f);
+                graphics.drawString(this.font, lineComp, 0, 0, titleColorRgb, false);
+                pose.popPose();
+            }
         }
 
         // --- Ornament separator ---
@@ -232,6 +258,65 @@ public class LoreBookScreen extends BookViewScreen {
         for (int line = 0; line < maxLines; line++) {
             graphics.drawString(this.font, cachedLines.get(line),
                     bookLeft + PAGE_TEXT_X_OFFSET, 32 + line * 9, 0x000000, false);
+        }
+    }
+
+    // ------------------------------------------------------------------
+    // Text interaction (hover / click events on page components)
+    // ------------------------------------------------------------------
+
+    /**
+     * Maps a mouse position onto the style of the page text under it, using the
+     * same block geometry {@link #renderContentPage} draws with. Returns null on
+     * the synthetic title page and anywhere outside the text block.
+     */
+    @Override
+    @Nullable
+    public Style getClickedComponentStyleAt(double mouseX, double mouseY) {
+        if (trackedPage == 0 || cachedLines.isEmpty()) return null;
+
+        int x = Mth.floor(mouseX - (double) ((this.width - IMAGE_WIDTH) / 2) - PAGE_TEXT_X_OFFSET);
+        int y = Mth.floor(mouseY - 2.0D - PAGE_TEXT_Y_OFFSET);
+        if (x < 0 || y < 0 || x > TEXT_WIDTH) return null;
+
+        int maxLines = Math.min(TEXT_HEIGHT / 9, cachedLines.size());
+        if (y >= 9 * maxLines + maxLines) return null;
+
+        int line = y / 9;
+        if (line >= cachedLines.size()) return null;
+        return this.font.getSplitter().componentStyleAtWidth(cachedLines.get(line), x);
+    }
+
+    /**
+     * mouseClicked is deliberately not overridden: vanilla already routes clicks
+     * through {@link #getClickedComponentStyleAt} into this method.
+     */
+    @Override
+    public boolean handleComponentClicked(@Nullable Style style) {
+        ClickEvent event = style == null ? null : style.getClickEvent();
+        if (event == null) return super.handleComponentClicked(style);
+
+        switch (event.getAction()) {
+            case CHANGE_PAGE -> {
+                // Click values are 1-based content pages; the wrapped access is
+                // offset by the synthetic title page at index 0.
+                int target = BookTextLayout.changePageTarget(event.getValue(), wrappedAccess.getPageCount());
+                if (target < 0) return false;
+                forcePage(target);
+                return true;
+            }
+            case RUN_COMMAND -> {
+                // Off by default; opt in with the server config reader.allowRunCommandClicks
+                if (!LoreCodexClientHelper.allowRunCommandClicks()) return false;
+                return super.handleComponentClicked(style);
+            }
+            case OPEN_FILE -> {
+                // Screen.handleComponentClicked would open a local file; lore books never may.
+                return false;
+            }
+            default -> {
+                return super.handleComponentClicked(style);
+            }
         }
     }
 

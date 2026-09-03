@@ -22,7 +22,9 @@
 - **Opening a Codex book now marks it read** -- opening a book from the Codex records your read state immediately.
 - **Added automated regression tests** -- Codex collection and spare-copy logic now covered by server-side tests (JUnit for data parsing and migration, Forge GameTests for gameplay behavior). Run with `./gradlew runGameTestServer`; Curios is excluded from the test environment.
 - **Duplicate handling renamed** -- replaced "duplicate prevention" terminology with "duplicates" control offering two modes: store as spare copies (default, off) or leave on ground (on)
-- **New server config options** -- `reader.allowRunCommandClicks` (default false) permits run_command click events in lore book text
+- **Interactive text in lore books** -- hover events with `show_text` and click events (`suggest_command`, `copy_to_clipboard`, `open_url`, `change_page`) now work in book page text; `run_command` is gated by server config `reader.allowRunCommandClicks` (default false) for security with third-party content
+- **Long titles wrap to two lines** -- book title pages now wrap to a maximum of two lines with automatic font scaling down to 0.75× before truncating with ellipsis, preventing indefinite shrinking
+- **Reading a physical lore book marks it read in Codex** -- opening a lore book from your hand marks it as read in the Codex if that book is in your collection
 - **New client config options** -- `codex_display.rememberSearch` (default true) persists search text across Codex opens; `codex_display.showUnreadMarkers` (default true) toggles the unread dot indicator
 - **Return-to-Codex behavior** -- closing a book reader returns to the Codex screen with the same search, category, filter, sort, page, and keyboard selection preserved
 

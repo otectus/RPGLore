@@ -1,5 +1,6 @@
 package com.rpglore.lore;
 
+import com.rpglore.codex.CodexService;
 import com.rpglore.config.ClientConfig;
 import com.rpglore.registry.ModItems;
 import net.minecraft.ChatFormatting;
@@ -75,6 +76,13 @@ public class LoreBookItem extends WrittenBookItem {
             // SERVER: resolve any raw JSON text components in the pages
             WrittenBookItem.resolveBookComponents(stack, serverPlayer.createCommandSourceStack(), serverPlayer);
             serverPlayer.containerMenu.broadcastChanges();
+
+            // Opening a collected book marks it read in the Codex. No-op for ids the
+            // player has not collected, and only syncs when the flag actually changed.
+            String loreId = tag.getString("lore_id");
+            if (!loreId.isEmpty() && CodexService.get() != null) {
+                CodexService.get().markRead(serverPlayer, loreId);
+            }
         }
 
         player.awardStat(Stats.ITEM_USED.get(this));

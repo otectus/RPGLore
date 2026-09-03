@@ -1,0 +1,17 @@
+{
+  "title": "The Exceedingly Long Chronicle of the Twelve Fallen Kings of",
+  "author": "Reader Test",
+  "generation": 0,
+  "weight": 1.0,
+  "title_color": "FFD700",
+  "description": "A test book for hover and click events in the lore reader.",
+  "category": "Testing",
+  "drop_conditions": {
+    "require_player_kill": true
+  },
+  "pages": [
+    "{\"text\":\"\",\"extra\":[{\"text\":\"Reader test page one.\\n\\n\"},{\"text\":\"Hover me\",\"color\":\"gold\",\"hoverEvent\":{\"action\":\"show_text\",\"contents\":{\"text\":\"A whispered marginal note.\",\"color\":\"gray\",\"italic\":true}}},{\"text\":\" - a show_text tooltip.\\n\\n\"},{\"text\":\"Suggest a command\",\"color\":\"aqua\",\"underlined\":true,\"clickEvent\":{\"action\":\"suggest_command\",\"value\":\"/rpglore validate\"}},{\"text\":\"\\n\\n\"},{\"text\":\"Copy to clipboard\",\"color\":\"green\",\"underlined\":true,\"clickEvent\":{\"action\":\"copy_to_clipboard\",\"value\":\"rpg_lore:interactive_text_example\"}}]}",
+    "{\"text\":\"\",\"extra\":[{\"text\":\"Reader test page two.\\n\\n\"},{\"text\":\"Open a URL\",\"color\":\"blue\",\"underlined\":true,\"clickEvent\":{\"action\":\"open_url\",\"value\":\"https://www.minecraft.net\"}},{\"text\":\" - shows the vanilla confirm screen.\\n\\n\"},{\"text\":\"Jump to page 3\",\"color\":\"dark_purple\",\"underlined\":true,\"clickEvent\":{\"action\":\"change_page\",\"value\":\"3\"}},{\"text\":\"\\n\\n\"},{\"text\":\"Run a command\",\"color\":\"red\",\"underlined\":true,\"hoverEvent\":{\"action\":\"show_text\",\"contents\":{\"text\":\"Blocked unless reader.allowRunCommandClicks is true\"}},\"clickEvent\":{\"action\":\"run_command\",\"value\":\"/say lore book click\"}}]}",
+    "{\"text\":\"\",\"extra\":[{\"text\":\"Reader test page three.\\n\\n\"},{\"text\":\"Back to page 1\",\"color\":\"dark_purple\",\"underlined\":true,\"clickEvent\":{\"action\":\"change_page\",\"value\":\"1\"}},{\"text\":\"\\n\\nAlso check the title page: the 60-character title above should wrap to two lines, shrink one step at a time, and never overlap the ornament or author.\"}]}"
+  ]
+}

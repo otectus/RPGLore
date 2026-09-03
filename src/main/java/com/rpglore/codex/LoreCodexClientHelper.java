@@ -118,6 +118,11 @@ public final class LoreCodexClientHelper {
         }
     }
 
+    /** @return whether the server allows run_command click events in lore books. */
+    public static boolean allowRunCommandClicks() {
+        return playerState.allowRunCommandClicks();
+    }
+
     /** @return the catalog revision the client currently holds. */
     public static int getCatalogRevision() {
         return catalogRevision;
