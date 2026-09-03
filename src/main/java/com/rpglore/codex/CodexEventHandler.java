@@ -150,6 +150,17 @@ public class CodexEventHandler {
     }
 
     /**
+     * Drops the player's cached catalog revision so their next login re-sends the
+     * catalog rather than trusting a client cache from a previous session.
+     */
+    @SubscribeEvent
+    public static void onPlayerLogout(PlayerEvent.PlayerLoggedOutEvent event) {
+        CodexService service = CodexService.get();
+        if (service == null) return;
+        service.forgetPlayer(event.getEntity().getUUID());
+    }
+
+    /**
      * When a lore book is picked up it always feeds into the Codex instead of the
      * inventory (a book only exists in book form on the ground or once extracted):
      * - New book: recorded as the permanent, readable master copy.

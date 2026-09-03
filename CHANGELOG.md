@@ -10,6 +10,10 @@
 - **/rpglore reload now reports changes** -- displays loaded/added/changed/removed/warnings/errors counts; reports how many definitions were skipped due to parse errors
 - **Load resilience** -- if the books directory becomes unreadable, the previous catalog remains active instead of being replaced with an empty one
 - **Format version validation** -- added `format_version` field validation; books must omit it or set it to 1; any other value produces an error
+- **Codex read state, favorites, and discovery timestamps** -- collected books now track which you have opened, can be marked as favorites, and record discovery time. Save format version 2 automatically migrates from 2.1.x with all existing books marked read (so veterans are not flooded with "new" books). Removing a book clears all its state.
+- **Reduced Codex network traffic** -- network protocol version 3 sends the Codex catalog when the server's catalog revision changes or when a newly collected book switches from hidden to revealed; otherwise only the compact per-player state is sent.
+- **Opening a Codex book now marks it read** -- opening a book from the Codex records your read state immediately.
+- **Added automated regression tests** -- Codex collection and spare-copy logic now covered by server-side tests (JUnit for data parsing and migration, Forge GameTests for gameplay behavior). Run with `./gradlew runGameTestServer`; Curios is excluded from the test environment.
 
 ## [2.1.2] - 2026-09-03
 

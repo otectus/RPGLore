@@ -3,7 +3,7 @@ package com.rpglore.codex;
 import com.rpglore.network.ModNetwork;
 import com.rpglore.network.ServerboundCodexCopyBookPacket;
 import com.rpglore.network.ServerboundCodexOpenBookPacket;
-import com.rpglore.network.ServerboundCodexToggleDuplicatePacket;
+import com.rpglore.network.ServerboundCodexSetDuplicateModePacket;
 import net.minecraft.ChatFormatting;
 import net.minecraft.client.gui.GuiGraphics;
 import net.minecraft.client.gui.components.Button;
@@ -17,7 +17,6 @@ import net.minecraft.util.FormattedCharSequence;
 import net.minecraftforge.api.distmarker.Dist;
 import net.minecraftforge.api.distmarker.OnlyIn;
 
-import javax.annotation.Nullable;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -71,7 +70,7 @@ public class LoreCodexScreen extends Screen {
     private static final int COLOR_COPY_HOVER = 0x4B2A0A;
 
     private CodexScreenData data;
-    private List<CodexBookEntry> filteredEntries;
+    private List<CodexEntryView> filteredEntries;
     private int currentPage = 0;
     private int totalPages = 1;
 
@@ -132,7 +131,9 @@ public class LoreCodexScreen extends Screen {
             int toggleX = guiLeft + PARCHMENT_X + PARCHMENT_WIDTH - toggleSize - TEXT_PADDING;
             int toggleY = textTop;
             toggleButton = Button.builder(getToggleLabel(), btn -> {
-                ModNetwork.sendToServer(new ServerboundCodexToggleDuplicatePacket());
+                // Idempotent set: ask for the opposite of the mode we are showing
+                ModNetwork.sendToServer(
+                        new ServerboundCodexSetDuplicateModePacket(data.preventDuplicates));
             }).bounds(toggleX, toggleY, toggleSize, toggleSize)
               .tooltip(Tooltip.create(
                       Component.literal("Duplicates").withStyle(ChatFormatting.WHITE),
@@ -200,7 +201,7 @@ public class LoreCodexScreen extends Screen {
         int endIdx = Math.min(startIdx + ENTRIES_PER_PAGE, filteredEntries.size());
 
         for (int i = startIdx; i < endIdx; i++) {
-            CodexBookEntry entry = filteredEntries.get(i);
+            CodexEntryView entry = filteredEntries.get(i);
             renderEntry(graphics, textLeft, y, entry, mouseX, mouseY);
             y += ENTRY_HEIGHT;
         }
@@ -221,7 +222,7 @@ public class LoreCodexScreen extends Screen {
     }
 
     private void renderEntry(GuiGraphics graphics, int x, int y,
-                             CodexBookEntry entry, int mouseX, int mouseY) {
+                             CodexEntryView entry, int mouseX, int mouseY) {
         // Status indicator
         if (entry.collected()) {
             graphics.drawString(this.font, "\u2022", x, y + 1, COLOR_COLLECTED, false);
@@ -237,7 +238,7 @@ public class LoreCodexScreen extends Screen {
             int copyReserve = 0;
             // Copy label, annotated with the banked spare count: extraction is gated on it
             if (data.allowCopy) {
-                int spares = entry.copies();
+                int spares = entry.spares();
                 boolean hasSpares = spares > 0;
                 String copyStr = "C(" + spares + ")";
                 int copyW = this.font.width(copyStr) + 2;
@@ -280,7 +281,7 @@ public class LoreCodexScreen extends Screen {
             }
             titleComp = Component.literal(entry.title())
                     .withStyle(Style.EMPTY.withColor(TextColor.fromRgb(color)));
-        } else if (data.revealUncollectedNames) {
+        } else if (data.revealUncollectedNames && !entry.title().isEmpty()) {
             titleComp = Component.literal(entry.title())
                     .withStyle(Style.EMPTY.withColor(TextColor.fromRgb(COLOR_UNCOLLECTED)));
         } else {
@@ -371,18 +372,8 @@ public class LoreCodexScreen extends Screen {
 
     // --- Data types ---
 
-    public record CodexBookEntry(
-            String id,
-            String title,
-            String author,
-            boolean collected,
-            @Nullable String titleColor,
-            @Nullable String category,
-            int copies
-    ) {}
-
     public record CodexScreenData(
-            List<CodexBookEntry> catalog,
+            List<CodexEntryView> catalog,
             boolean preventDuplicates,
             int collectedCount,
             int totalCount,

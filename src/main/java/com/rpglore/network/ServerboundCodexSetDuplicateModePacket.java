@@ -8,16 +8,26 @@ import net.minecraftforge.network.NetworkEvent;
 
 import java.util.function.Supplier;
 
-public class ServerboundCodexToggleDuplicatePacket {
+/**
+ * Chooses what happens to a duplicate lore book the player walks over:
+ * {@code storeAsSpare = true} absorbs it into the spare bank, {@code false} leaves it
+ * on the ground. Idempotent set rather than a toggle, so the client and server cannot
+ * end up out of phase.
+ */
+public class ServerboundCodexSetDuplicateModePacket {
 
-    public ServerboundCodexToggleDuplicatePacket() {}
+    private final boolean storeAsSpare;
 
-    public void encode(FriendlyByteBuf buf) {
-        // empty
+    public ServerboundCodexSetDuplicateModePacket(boolean storeAsSpare) {
+        this.storeAsSpare = storeAsSpare;
     }
 
-    public static ServerboundCodexToggleDuplicatePacket decode(FriendlyByteBuf buf) {
-        return new ServerboundCodexToggleDuplicatePacket();
+    public void encode(FriendlyByteBuf buf) {
+        buf.writeBoolean(storeAsSpare);
+    }
+
+    public static ServerboundCodexSetDuplicateModePacket decode(FriendlyByteBuf buf) {
+        return new ServerboundCodexSetDuplicateModePacket(buf.readBoolean());
     }
 
     public void handle(Supplier<NetworkEvent.Context> ctx) {
@@ -29,7 +39,7 @@ public class ServerboundCodexToggleDuplicatePacket {
             CodexService service = CodexService.get();
             if (service == null) return;
 
-            service.toggleDuplicatePrevention(player);
+            service.setDuplicateMode(player, storeAsSpare);
         });
         ctx.get().setPacketHandled(true);
     }

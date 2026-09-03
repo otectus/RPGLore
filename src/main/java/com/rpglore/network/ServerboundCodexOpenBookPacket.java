@@ -1,5 +1,6 @@
 package com.rpglore.network;
 
+import com.rpglore.codex.CodexService;
 import com.rpglore.codex.CodexTrackingData;
 import com.rpglore.config.LoreBookRegistry;
 import com.rpglore.lore.LoreBookDefinition;
@@ -41,6 +42,12 @@ public class ServerboundCodexOpenBookPacket {
 
             Optional<LoreBookDefinition> optDef = LoreBookRegistry.getById(bookId);
             if (optDef.isEmpty()) return;
+
+            // Opening the book is what marks it read; there is no separate packet for it
+            CodexService service = CodexService.get();
+            if (service != null) {
+                service.markRead(player, bookId);
+            }
 
             // Create a temporary ItemStack for the book and send it to the client
             ItemStack bookStack = LoreBookItem.createStack(optDef.get());

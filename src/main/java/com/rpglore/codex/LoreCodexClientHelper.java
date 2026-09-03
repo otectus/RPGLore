@@ -13,6 +13,11 @@ import net.minecraftforge.api.distmarker.Dist;
 import net.minecraftforge.api.distmarker.OnlyIn;
 
 import javax.annotation.Nullable;
+import java.util.ArrayList;
+import java.util.Comparator;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
 
 /**
  * Client-only helper for the Lore Codex.
@@ -21,6 +26,13 @@ import javax.annotation.Nullable;
  */
 @OnlyIn(Dist.CLIENT)
 public final class LoreCodexClientHelper {
+
+    /** Last catalog received. Kept between screen opens; only resent when it changes. */
+    private static int catalogRevision = 0;
+    private static List<CodexCatalogEntry> catalog = List.of();
+
+    /** Last player state received. */
+    private static CodexPlayerState playerState = CodexPlayerState.empty();
 
     @Nullable
     private static LoreCodexScreen.CodexScreenData cachedData;
@@ -34,12 +46,67 @@ public final class LoreCodexClientHelper {
         }
     }
 
-    public static void updateCachedData(LoreCodexScreen.CodexScreenData data) {
+    public static void updateCatalog(int revision, List<CodexCatalogEntry> entries) {
+        catalogRevision = revision;
+        catalog = entries;
+        rebuildScreenData();
+    }
+
+    public static void updatePlayerState(CodexPlayerState state) {
+        playerState = state;
+        rebuildScreenData();
+    }
+
+    /**
+     * Joins the cached catalog with the cached player state into the flat view list
+     * the screen renders, then pushes it to an open screen.
+     */
+    private static void rebuildScreenData() {
+        Map<String, CodexPlayerState.Entry> byId = new HashMap<>();
+        for (CodexPlayerState.Entry entry : playerState.entries()) {
+            byId.put(entry.id(), entry);
+        }
+
+        List<CodexEntryView> views = new ArrayList<>(catalog.size());
+        int collectedCount = 0;
+        for (CodexCatalogEntry entry : catalog) {
+            CodexPlayerState.Entry state = byId.get(entry.id());
+            boolean collected = state != null;
+            if (collected) collectedCount++;
+            views.add(CodexEntryView.of(
+                    entry,
+                    collected,
+                    collected && state.read(),
+                    collected && state.favorite(),
+                    collected ? state.spares() : 0,
+                    collected ? state.discoveredAt() : 0L));
+        }
+
+        // Same ordering the server used before: collected first, then by title
+        views.sort(Comparator.comparing((CodexEntryView v) -> !v.collected())
+                .thenComparing(CodexEntryView::title)
+                .thenComparing(CodexEntryView::id));
+
+        LoreCodexScreen.CodexScreenData data = new LoreCodexScreen.CodexScreenData(
+                views,
+                !playerState.storeDuplicatesAsSpares(),
+                collectedCount,
+                views.size(),
+                playerState.allowCopy(),
+                playerState.allowDuplicatePrevention(),
+                playerState.revealUncollectedNames()
+        );
+
         cachedData = data;
         // If a LoreCodexScreen is currently open, refresh it
         if (Minecraft.getInstance().screen instanceof LoreCodexScreen screen) {
             screen.refreshData(data);
         }
+    }
+
+    /** @return the catalog revision the client currently holds. */
+    public static int getCatalogRevision() {
+        return catalogRevision;
     }
 
     /**

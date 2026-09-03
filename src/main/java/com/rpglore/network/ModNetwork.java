@@ -10,7 +10,7 @@ import net.minecraftforge.network.simple.SimpleChannel;
 
 public class ModNetwork {
     private static SimpleChannel INSTANCE;
-    private static final String PROTOCOL_VERSION = "2";
+    private static final String PROTOCOL_VERSION = "3";
 
     public static void register() {
         INSTANCE = NetworkRegistry.newSimpleChannel(
@@ -20,43 +20,60 @@ public class ModNetwork {
                 PROTOCOL_VERSION::equals
         );
 
-        int id = 0;
+        // Packet ids are fixed and must not be reshuffled without bumping
+        // PROTOCOL_VERSION: 0-4 clientbound, 5-9 serverbound.
 
-        INSTANCE.messageBuilder(ClientboundCodexSyncPacket.class, id++, NetworkDirection.PLAY_TO_CLIENT)
-                .encoder(ClientboundCodexSyncPacket::encode)
-                .decoder(ClientboundCodexSyncPacket::decode)
-                .consumerMainThread(ClientboundCodexSyncPacket::handle)
+        INSTANCE.messageBuilder(ClientboundCodexCatalogPacket.class, 0, NetworkDirection.PLAY_TO_CLIENT)
+                .encoder(ClientboundCodexCatalogPacket::encode)
+                .decoder(ClientboundCodexCatalogPacket::decode)
+                .consumerMainThread(ClientboundCodexCatalogPacket::handle)
                 .add();
 
-        INSTANCE.messageBuilder(ServerboundCodexToggleDuplicatePacket.class, id++, NetworkDirection.PLAY_TO_SERVER)
-                .encoder(ServerboundCodexToggleDuplicatePacket::encode)
-                .decoder(ServerboundCodexToggleDuplicatePacket::decode)
-                .consumerMainThread(ServerboundCodexToggleDuplicatePacket::handle)
+        INSTANCE.messageBuilder(ClientboundCodexPlayerStatePacket.class, 1, NetworkDirection.PLAY_TO_CLIENT)
+                .encoder(ClientboundCodexPlayerStatePacket::encode)
+                .decoder(ClientboundCodexPlayerStatePacket::decode)
+                .consumerMainThread(ClientboundCodexPlayerStatePacket::handle)
                 .add();
 
-        INSTANCE.messageBuilder(ServerboundCodexCopyBookPacket.class, id++, NetworkDirection.PLAY_TO_SERVER)
-                .encoder(ServerboundCodexCopyBookPacket::encode)
-                .decoder(ServerboundCodexCopyBookPacket::decode)
-                .consumerMainThread(ServerboundCodexCopyBookPacket::handle)
-                .add();
-
-        INSTANCE.messageBuilder(ServerboundCodexOpenBookPacket.class, id++, NetworkDirection.PLAY_TO_SERVER)
-                .encoder(ServerboundCodexOpenBookPacket::encode)
-                .decoder(ServerboundCodexOpenBookPacket::decode)
-                .consumerMainThread(ServerboundCodexOpenBookPacket::handle)
-                .add();
-
-        INSTANCE.messageBuilder(ClientboundCodexOpenBookPacket.class, id++, NetworkDirection.PLAY_TO_CLIENT)
+        INSTANCE.messageBuilder(ClientboundCodexOpenBookPacket.class, 2, NetworkDirection.PLAY_TO_CLIENT)
                 .encoder(ClientboundCodexOpenBookPacket::encode)
                 .decoder(ClientboundCodexOpenBookPacket::decode)
                 .consumerMainThread(ClientboundCodexOpenBookPacket::handle)
                 .add();
 
-        INSTANCE.messageBuilder(ClientboundCodexCollectionEventPacket.class, id++, NetworkDirection.PLAY_TO_CLIENT)
+        INSTANCE.messageBuilder(ClientboundCodexCollectionEventPacket.class, 3, NetworkDirection.PLAY_TO_CLIENT)
                 .encoder(ClientboundCodexCollectionEventPacket::encode)
                 .decoder(ClientboundCodexCollectionEventPacket::decode)
                 .consumerMainThread(ClientboundCodexCollectionEventPacket::handle)
                 .add();
+
+        // id 4: reserved for ClientboundCodexOpenScreenPacket (Phase 3 keybind)
+
+        INSTANCE.messageBuilder(ServerboundCodexOpenBookPacket.class, 5, NetworkDirection.PLAY_TO_SERVER)
+                .encoder(ServerboundCodexOpenBookPacket::encode)
+                .decoder(ServerboundCodexOpenBookPacket::decode)
+                .consumerMainThread(ServerboundCodexOpenBookPacket::handle)
+                .add();
+
+        INSTANCE.messageBuilder(ServerboundCodexCopyBookPacket.class, 6, NetworkDirection.PLAY_TO_SERVER)
+                .encoder(ServerboundCodexCopyBookPacket::encode)
+                .decoder(ServerboundCodexCopyBookPacket::decode)
+                .consumerMainThread(ServerboundCodexCopyBookPacket::handle)
+                .add();
+
+        INSTANCE.messageBuilder(ServerboundCodexSetFavoritePacket.class, 7, NetworkDirection.PLAY_TO_SERVER)
+                .encoder(ServerboundCodexSetFavoritePacket::encode)
+                .decoder(ServerboundCodexSetFavoritePacket::decode)
+                .consumerMainThread(ServerboundCodexSetFavoritePacket::handle)
+                .add();
+
+        INSTANCE.messageBuilder(ServerboundCodexSetDuplicateModePacket.class, 8, NetworkDirection.PLAY_TO_SERVER)
+                .encoder(ServerboundCodexSetDuplicateModePacket::encode)
+                .decoder(ServerboundCodexSetDuplicateModePacket::decode)
+                .consumerMainThread(ServerboundCodexSetDuplicateModePacket::handle)
+                .add();
+
+        // id 9: reserved for ServerboundOpenCodexPacket (Phase 3 keybind)
     }
 
     public static <MSG> void sendToServer(MSG msg) {
@@ -64,6 +81,9 @@ public class ModNetwork {
     }
 
     public static <MSG> void sendToPlayer(MSG msg, ServerPlayer player) {
+        // GameTest mock players are placed in the player list with a channel-less
+        // Connection; Forge's distributor reads a channel attribute and would NPE.
+        if (player.connection == null || !player.connection.connection.isConnected()) return;
         INSTANCE.send(PacketDistributor.PLAYER.with(() -> player), msg);
     }
 }

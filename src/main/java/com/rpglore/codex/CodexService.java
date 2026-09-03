@@ -6,7 +6,8 @@ import com.rpglore.config.ServerConfig;
 import com.rpglore.data.LoreTrackingData;
 import com.rpglore.lore.LoreBookDefinition;
 import com.rpglore.lore.LoreBookItem;
-import com.rpglore.network.ClientboundCodexSyncPacket;
+import com.rpglore.network.ClientboundCodexCatalogPacket;
+import com.rpglore.network.ClientboundCodexPlayerStatePacket;
 import com.rpglore.network.ModNetwork;
 import com.rpglore.registry.ModItems;
 import net.minecraft.nbt.CompoundTag;
@@ -18,7 +19,13 @@ import net.minecraft.world.entity.item.ItemEntity;
 import net.minecraft.world.item.ItemStack;
 
 import javax.annotation.Nullable;
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
 import java.util.Optional;
+import java.util.Set;
+import java.util.TreeSet;
 import java.util.UUID;
 
 /**
@@ -45,6 +52,12 @@ public final class CodexService {
 
     private final CodexTrackingData codexData;
 
+    /**
+     * Last catalog revision each online player was sent. Lets duplicate banking (and
+     * every other player-state change) skip resending the whole book list.
+     */
+    private final Map<UUID, Integer> lastSentRevision = new HashMap<>();
+
     private CodexService(CodexTrackingData codexData) {
         this.codexData = codexData;
     }
@@ -54,6 +67,8 @@ public final class CodexService {
     }
 
     public static void clear() {
+        CodexService current = instance;
+        if (current != null) current.lastSentRevision.clear();
         instance = null;
     }
 
@@ -73,11 +88,37 @@ public final class CodexService {
      * @return true if the book was newly added
      */
     public boolean collectBook(ServerPlayer player, String bookId) {
-        boolean added = codexData.addBook(player.getUUID(), bookId);
+        boolean added = codexData.addBook(player.getUUID(), bookId, player.level().getGameTime());
         if (added) {
-            syncAll(player);
+            // With uncollected names hidden, this entry just went from redacted to
+            // full, so the catalog itself changed for this player and must be resent.
+            syncAll(player, !ServerConfig.CODEX_REVEAL_UNCOLLECTED_NAMES.get());
         }
         return added;
+    }
+
+    /**
+     * Marks a collected book as read (the Codex opened it).
+     * @return true if the book flipped from unread to read
+     */
+    public boolean markRead(ServerPlayer player, String bookId) {
+        boolean changed = codexData.markRead(player.getUUID(), bookId);
+        if (changed) {
+            syncAll(player, false);
+        }
+        return changed;
+    }
+
+    /**
+     * Sets the favorite flag on a collected book. Uncollected ids are ignored.
+     * @return true if the flag changed
+     */
+    public boolean setFavorite(ServerPlayer player, String bookId, boolean favorite) {
+        boolean changed = codexData.setFavorite(player.getUUID(), bookId, favorite);
+        if (changed) {
+            syncAll(player, false);
+        }
+        return changed;
     }
 
     /**
@@ -87,7 +128,7 @@ public final class CodexService {
      */
     public void bankDuplicate(ServerPlayer player, String bookId) {
         codexData.addCopy(player.getUUID(), bookId);
-        syncAll(player);
+        syncAll(player, false);
     }
 
     /** Outcome of an extraction attempt. */
@@ -124,7 +165,7 @@ public final class CodexService {
         player.level().playSound(null, player.getX(), player.getY(), player.getZ(),
                 SoundEvents.BOOK_PAGE_TURN, SoundSource.PLAYERS, 0.5f, 1.0f);
 
-        syncAll(player);
+        syncAll(player, false);
         return ExtractResult.SUCCESS;
     }
 
@@ -135,7 +176,8 @@ public final class CodexService {
     public boolean removeBook(ServerPlayer player, String bookId) {
         boolean removed = codexData.removeBook(player.getUUID(), bookId);
         if (removed) {
-            syncAll(player);
+            // The entry may need to fall back to its redacted form
+            syncAll(player, !ServerConfig.CODEX_REVEAL_UNCOLLECTED_NAMES.get());
         }
         return removed;
     }
@@ -145,17 +187,22 @@ public final class CodexService {
      */
     public void resetPlayer(ServerPlayer player) {
         codexData.clearPlayer(player.getUUID());
-        syncAll(player);
+        syncAll(player, !ServerConfig.CODEX_REVEAL_UNCOLLECTED_NAMES.get());
     }
 
     /**
-     * Toggles duplicate prevention for a player.
+     * Chooses how duplicates are handled: absorbed into the spare bank, or left on
+     * the ground. Idempotent — the caller states the mode it wants, so a lost packet
+     * cannot leave the client showing the opposite of the stored value.
      */
-    public void toggleDuplicatePrevention(ServerPlayer player) {
-        UUID uuid = player.getUUID();
-        boolean current = codexData.isPreventDuplicates(uuid);
-        codexData.setPreventDuplicates(uuid, !current);
-        syncAll(player);
+    public void setDuplicateMode(ServerPlayer player, boolean storeAsSpare) {
+        codexData.setPreventDuplicates(player.getUUID(), !storeAsSpare);
+        syncAll(player, false);
+    }
+
+    /** Drops the cached catalog revision for a player who has left. */
+    public void forgetPlayer(UUID uuid) {
+        lastSentRevision.remove(uuid);
     }
 
     /**
@@ -210,7 +257,7 @@ public final class CodexService {
      * Re-syncs a specific player's Codex item NBT and client cache.
      */
     public void resyncPlayer(ServerPlayer player) {
-        syncAll(player);
+        syncAll(player, true);
     }
 
     // --- Private ---
@@ -219,9 +266,13 @@ public final class CodexService {
      * Atomically updates all three state locations:
      * 1. SavedData (already done by caller)
      * 2. Item NBT cache on the held Codex
-     * 3. Client sync packet
+     * 3. Client packets
+     *
+     * <p>The catalog is only resent when the registry revision moved past what this
+     * player was last sent, or when {@code catalogChanged} says the redaction of one
+     * of their entries flipped. Everything else sends player state alone.
      */
-    private void syncAll(ServerPlayer player) {
+    private void syncAll(ServerPlayer player, boolean catalogChanged) {
         UUID uuid = player.getUUID();
 
         // Update item NBT on the player's Codex (if they have one)
@@ -230,8 +281,68 @@ public final class CodexService {
             LoreCodexItem.syncItemNbt(codexStack, codexData, uuid);
         }
 
-        // Send sync packet to client
-        ClientboundCodexSyncPacket packet = ClientboundCodexSyncPacket.create(uuid, codexData);
-        ModNetwork.sendToPlayer(packet, player);
+        int revision = LoreBookRegistry.getRevision();
+        Integer lastSent = lastSentRevision.get(uuid);
+        if (catalogChanged || lastSent == null || lastSent != revision) {
+            ModNetwork.sendToPlayer(
+                    new ClientboundCodexCatalogPacket(revision, buildCatalogFor(player)), player);
+            lastSentRevision.put(uuid, revision);
+        }
+
+        ModNetwork.sendToPlayer(
+                new ClientboundCodexPlayerStatePacket(buildPlayerState(player, revision)), player);
+    }
+
+    /**
+     * Builds the catalog as this player is allowed to see it. This is the one place
+     * the hidden-name rule is applied: uncollected books are redacted unless the
+     * server config reveals their names.
+     */
+    private List<CodexCatalogEntry> buildCatalogFor(ServerPlayer player) {
+        UUID uuid = player.getUUID();
+        boolean reveal = ServerConfig.CODEX_REVEAL_UNCOLLECTED_NAMES.get();
+
+        // Sorted for a stable wire order across syncs
+        Set<String> eligibleIds = new TreeSet<>(LoreBookRegistry.getCodexEligibleIds());
+        List<CodexCatalogEntry> catalog = new ArrayList<>(eligibleIds.size());
+
+        for (String id : eligibleIds) {
+            Optional<LoreBookDefinition> optDef = LoreBookRegistry.getById(id);
+            if (optDef.isEmpty()) continue;
+            LoreBookDefinition def = optDef.get();
+
+            if (!reveal && !codexData.hasBook(uuid, id)) {
+                catalog.add(CodexCatalogEntry.redacted(id, def.category(), null, 0));
+            } else {
+                catalog.add(CodexCatalogEntry.of(def));
+            }
+        }
+        return catalog;
+    }
+
+    /** Builds the player's own state: one entry per collected, still-eligible book. */
+    private CodexPlayerState buildPlayerState(ServerPlayer player, int revision) {
+        UUID uuid = player.getUUID();
+        Set<String> eligibleIds = LoreBookRegistry.getCodexEligibleIds();
+
+        List<CodexPlayerState.Entry> entries = new ArrayList<>();
+        for (String id : new TreeSet<>(codexData.getCollectedBooks(uuid))) {
+            if (!eligibleIds.contains(id)) continue;
+            byte flags = CodexPlayerState.Entry.packFlags(
+                    codexData.isRead(uuid, id), codexData.isFavorite(uuid, id));
+            entries.add(new CodexPlayerState.Entry(
+                    id, flags, codexData.getCopies(uuid, id), codexData.getDiscoveredAt(uuid, id)));
+        }
+
+        return new CodexPlayerState(
+                revision,
+                entries,
+                !codexData.isPreventDuplicates(uuid),
+                ServerConfig.CODEX_ALLOW_COPY.get(),
+                ServerConfig.CODEX_ALLOW_DUPLICATE_PREVENTION.get(),
+                ServerConfig.CODEX_REVEAL_UNCOLLECTED_NAMES.get(),
+                // Phase 3 adds the config key that gates run_command click events
+                false
+        );
     }
 }

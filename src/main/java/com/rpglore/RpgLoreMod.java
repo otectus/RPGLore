@@ -9,6 +9,7 @@ import com.rpglore.config.ClientConfig;
 import com.rpglore.config.LoreBookRegistry;
 import com.rpglore.config.ServerConfig;
 import com.rpglore.data.LoreTrackingData;
+import com.rpglore.gametest.RpgLoreGameTests;
 import com.rpglore.lore.LoreBookLecternHandler;
 import com.rpglore.loot.ModLootModifiers;
 import com.rpglore.network.ModNetwork;
@@ -19,6 +20,7 @@ import net.minecraft.world.item.CreativeModeTabs;
 import net.minecraftforge.common.MinecraftForge;
 import net.minecraftforge.event.BuildCreativeModeTabContentsEvent;
 import net.minecraftforge.event.RegisterCommandsEvent;
+import net.minecraftforge.event.RegisterGameTestsEvent;
 import net.minecraftforge.event.server.ServerStartingEvent;
 import net.minecraftforge.event.server.ServerStoppedEvent;
 import net.minecraftforge.eventbus.api.IEventBus;
@@ -51,6 +53,7 @@ public class RpgLoreMod {
 
         // MOD bus listeners
         modEventBus.addListener(this::onBuildCreativeTabContents);
+        modEventBus.addListener(this::onRegisterGameTests);
 
         // FORGE bus listeners
         MinecraftForge.EVENT_BUS.addListener(this::onServerStarting);
@@ -76,6 +79,10 @@ public class RpgLoreMod {
                 event.accept(ModItems.LORE_CODEX);
             }
         }
+    }
+
+    private void onRegisterGameTests(final RegisterGameTestsEvent event) {
+        event.register(RpgLoreGameTests.class);
     }
 
     private void onServerStarting(final ServerStartingEvent event) {

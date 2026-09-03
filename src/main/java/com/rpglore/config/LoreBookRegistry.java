@@ -15,11 +15,26 @@ public final class LoreBookRegistry {
 
     private static volatile Map<String, LoreBookDefinition> BOOKS = Map.of();
 
+    /**
+     * Bumped whenever the loaded book set actually changes. Clients cache the Codex
+     * catalog against this, so a reload that produced identical books must not
+     * invalidate it.
+     */
+    private static volatile int revision = 1;
+
     @Nullable
     private static volatile LoreTrackingData trackingData;
 
     public static void setBooks(Map<String, LoreBookDefinition> books) {
-        BOOKS = Collections.unmodifiableMap(books);
+        Map<String, LoreBookDefinition> newBooks = Collections.unmodifiableMap(books);
+        boolean changed = !newBooks.equals(BOOKS);
+        BOOKS = newBooks;
+        if (changed) revision++;
+    }
+
+    /** @return the current catalog revision; increments only on a real content change. */
+    public static int getRevision() {
+        return revision;
     }
 
     public static void setTrackingData(@Nullable LoreTrackingData data) {

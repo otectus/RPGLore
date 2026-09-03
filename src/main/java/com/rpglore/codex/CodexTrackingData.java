@@ -23,6 +23,9 @@ public class CodexTrackingData extends SavedData {
     /** Upper bound on banked spare copies per book — guards against unbounded NBT growth from farming. */
     private static final int MAX_SPARE_COPIES = 99;
 
+    /** Current save format. Version 1 (implicit, untagged) had no read/favorite/discovery state. */
+    private static final int CURRENT_VERSION = 2;
+
     @Nullable
     private static CodexTrackingData instance;
 
@@ -43,16 +46,17 @@ public class CodexTrackingData extends SavedData {
 
     public boolean hasBook(UUID player, String bookId) {
         PlayerCodexData data = playerCodexes.get(player);
-        return data != null && data.collectedBookIds.contains(bookId);
+        return data != null && data.isCollected(bookId);
     }
 
     /**
-     * Adds a book to the player's collection.
+     * Adds a book to the player's collection, stamping its discovery time.
+     * The book starts unread.
      * @return true if the book was newly added, false if already present
      */
-    public boolean addBook(UUID player, String bookId) {
+    public boolean addBook(UUID player, String bookId, long gameTime) {
         PlayerCodexData data = playerCodexes.computeIfAbsent(player, k -> new PlayerCodexData());
-        boolean added = data.collectedBookIds.add(bookId);
+        boolean added = data.addCollected(bookId, gameTime);
         if (added) setDirty();
         return added;
     }
@@ -60,9 +64,7 @@ public class CodexTrackingData extends SavedData {
     public boolean removeBook(UUID player, String bookId) {
         PlayerCodexData data = playerCodexes.get(player);
         if (data == null) return false;
-        boolean removed = data.collectedBookIds.remove(bookId);
-        // Removing the master also discards any banked spare copies for that book
-        if (data.bookCopies.remove(bookId) != null) removed = true;
+        boolean removed = data.remove(bookId);
         if (removed) setDirty();
         return removed;
     }
@@ -70,13 +72,67 @@ public class CodexTrackingData extends SavedData {
     public Set<String> getCollectedBooks(UUID player) {
         PlayerCodexData data = playerCodexes.get(player);
         if (data == null) return Set.of();
-        return Set.copyOf(data.collectedBookIds);
+        return data.collectedView();
+    }
+
+    // --- Read / favorite / discovery state ---
+
+    public boolean isRead(UUID player, String bookId) {
+        PlayerCodexData data = playerCodexes.get(player);
+        return data != null && data.isRead(bookId);
+    }
+
+    /**
+     * Marks a collected book as read. Uncollected ids are rejected.
+     * @return true if this flipped an unread collected book to read
+     */
+    public boolean markRead(UUID player, String bookId) {
+        PlayerCodexData data = playerCodexes.get(player);
+        if (data == null) return false;
+        boolean changed = data.markRead(bookId);
+        if (changed) setDirty();
+        return changed;
+    }
+
+    public Set<String> getReadBooks(UUID player) {
+        PlayerCodexData data = playerCodexes.get(player);
+        if (data == null) return Set.of();
+        return data.readView();
+    }
+
+    public boolean isFavorite(UUID player, String bookId) {
+        PlayerCodexData data = playerCodexes.get(player);
+        return data != null && data.isFavorite(bookId);
+    }
+
+    /**
+     * Sets the favorite flag on a collected book. Uncollected ids are rejected.
+     * @return true if the flag changed
+     */
+    public boolean setFavorite(UUID player, String bookId, boolean favorite) {
+        PlayerCodexData data = playerCodexes.get(player);
+        if (data == null) return false;
+        boolean changed = data.setFavorite(bookId, favorite);
+        if (changed) setDirty();
+        return changed;
+    }
+
+    public Set<String> getFavoriteBooks(UUID player) {
+        PlayerCodexData data = playerCodexes.get(player);
+        if (data == null) return Set.of();
+        return data.favoritesView();
+    }
+
+    /** @return the game time the book was first collected, or 0 when unknown (migrated saves). */
+    public long getDiscoveredAt(UUID player, String bookId) {
+        PlayerCodexData data = playerCodexes.get(player);
+        return data != null ? data.discoveredAt(bookId) : 0L;
     }
 
     // --- Spare copy bank ---
     //
     // The first absorbed copy of a book becomes a permanent, readable "master"
-    // (tracked in collectedBookIds). Every additional duplicate absorbed is
+    // (tracked in the collected set). Every additional duplicate absorbed is
     // banked here as a spare copy. Extraction draws this bank down; the master
     // itself is never extractable.
 
@@ -86,7 +142,7 @@ public class CodexTrackingData extends SavedData {
     public int getCopies(UUID player, String bookId) {
         PlayerCodexData data = playerCodexes.get(player);
         if (data == null) return 0;
-        return data.bookCopies.getOrDefault(bookId, 0);
+        return data.copies(bookId);
     }
 
     /**
@@ -94,10 +150,7 @@ public class CodexTrackingData extends SavedData {
      */
     public void addCopy(UUID player, String bookId) {
         PlayerCodexData data = playerCodexes.computeIfAbsent(player, k -> new PlayerCodexData());
-        int current = data.bookCopies.getOrDefault(bookId, 0);
-        if (current >= MAX_SPARE_COPIES) return; // already at cap; ignore further duplicates
-        data.bookCopies.put(bookId, current + 1);
-        setDirty();
+        if (data.addCopy(bookId)) setDirty();
     }
 
     /**
@@ -107,15 +160,9 @@ public class CodexTrackingData extends SavedData {
     public boolean consumeCopy(UUID player, String bookId) {
         PlayerCodexData data = playerCodexes.get(player);
         if (data == null) return false;
-        int current = data.bookCopies.getOrDefault(bookId, 0);
-        if (current <= 0) return false;
-        if (current == 1) {
-            data.bookCopies.remove(bookId);
-        } else {
-            data.bookCopies.put(bookId, current - 1);
-        }
-        setDirty();
-        return true;
+        boolean consumed = data.consumeCopy(bookId);
+        if (consumed) setDirty();
+        return consumed;
     }
 
     /**
@@ -124,19 +171,18 @@ public class CodexTrackingData extends SavedData {
     public Map<String, Integer> getCopiesMap(UUID player) {
         PlayerCodexData data = playerCodexes.get(player);
         if (data == null) return Map.of();
-        return Map.copyOf(data.bookCopies);
+        return data.copiesView();
     }
 
     public int getCollectedCount(UUID player) {
         PlayerCodexData data = playerCodexes.get(player);
-        return data != null ? data.collectedBookIds.size() : 0;
+        return data != null ? data.collectedCount() : 0;
     }
 
     public void clearPlayer(UUID player) {
         PlayerCodexData data = playerCodexes.get(player);
         if (data != null) {
-            data.collectedBookIds.clear();
-            data.bookCopies.clear();
+            data.clearAll();
             setDirty();
         }
     }
@@ -225,8 +271,7 @@ public class CodexTrackingData extends SavedData {
      */
     public void pruneStaleEntries(Set<String> codexEligibleIds) {
         for (PlayerCodexData data : playerCodexes.values()) {
-            data.collectedBookIds.retainAll(codexEligibleIds);
-            data.bookCopies.keySet().retainAll(codexEligibleIds);
+            data.retainAll(codexEligibleIds);
         }
         setDirty();
     }
@@ -239,29 +284,7 @@ public class CodexTrackingData extends SavedData {
         for (String uuidStr : players.getAllKeys()) {
             try {
                 UUID uuid = UUID.fromString(uuidStr);
-                CompoundTag playerTag = players.getCompound(uuidStr);
-                PlayerCodexData pData = new PlayerCodexData();
-
-                ListTag collected = playerTag.getList("collected", Tag.TAG_STRING);
-                for (int i = 0; i < collected.size(); i++) {
-                    pData.collectedBookIds.add(collected.getString(i));
-                }
-
-                // Spare-copy bank (absent in pre-2.x.x saves -> empty map)
-                CompoundTag copies = playerTag.getCompound("copies");
-                for (String bookId : copies.getAllKeys()) {
-                    int count = copies.getInt(bookId);
-                    if (count > 0) pData.bookCopies.put(bookId, count);
-                }
-
-                pData.preventDuplicatePickup = playerTag.getBoolean("prevent_duplicates");
-                pData.hasEverReceivedCodex = playerTag.getBoolean("has_codex");
-
-                if (playerTag.contains("pending_codex", Tag.TAG_COMPOUND)) {
-                    pData.pendingCodex = playerTag.getCompound("pending_codex");
-                }
-
-                data.playerCodexes.put(uuid, pData);
+                data.playerCodexes.put(uuid, PlayerCodexData.load(players.getCompound(uuidStr)));
             } catch (IllegalArgumentException e) {
                 RpgLoreMod.LOGGER.warn("Invalid UUID in codex tracking data: {}", uuidStr);
             }
@@ -273,31 +296,10 @@ public class CodexTrackingData extends SavedData {
     public CompoundTag save(CompoundTag tag) {
         CompoundTag players = new CompoundTag();
         for (Map.Entry<UUID, PlayerCodexData> entry : playerCodexes.entrySet()) {
-            CompoundTag playerTag = new CompoundTag();
-            PlayerCodexData pData = entry.getValue();
-
-            ListTag collected = new ListTag();
-            for (String bookId : pData.collectedBookIds) {
-                collected.add(StringTag.valueOf(bookId));
-            }
-            playerTag.put("collected", collected);
-
-            CompoundTag copies = new CompoundTag();
-            for (Map.Entry<String, Integer> copyEntry : pData.bookCopies.entrySet()) {
-                copies.putInt(copyEntry.getKey(), copyEntry.getValue());
-            }
-            playerTag.put("copies", copies);
-
-            playerTag.putBoolean("prevent_duplicates", pData.preventDuplicatePickup);
-            playerTag.putBoolean("has_codex", pData.hasEverReceivedCodex);
-
-            if (pData.pendingCodex != null) {
-                playerTag.put("pending_codex", pData.pendingCodex);
-            }
-
-            players.put(entry.getKey().toString(), playerTag);
+            players.put(entry.getKey().toString(), PlayerCodexData.save(entry.getValue()));
         }
         tag.put("players", players);
+        tag.putInt("version", CURRENT_VERSION);
         return tag;
     }
 
@@ -311,15 +313,226 @@ public class CodexTrackingData extends SavedData {
 
     // --- Internal data class ---
 
+    /**
+     * Per-player state. Fields are private so the collected/read/favorite/discovery
+     * invariants live here instead of at every call site: read and favorite are
+     * always subsets of collected, and removal clears all five structures.
+     */
     private static class PlayerCodexData {
-        final Set<String> collectedBookIds = new HashSet<>();
+        private final Set<String> collectedBookIds = new HashSet<>();
         /** Extractable spare copies banked per book id (master copy not counted here). */
-        final Map<String, Integer> bookCopies = new HashMap<>();
+        private final Map<String, Integer> bookCopies = new HashMap<>();
+        /** Subset of collected: books the player has opened at least once. */
+        private final Set<String> readBookIds = new HashSet<>();
+        /** Subset of collected: books flagged as favorites. */
+        private final Set<String> favoriteBookIds = new HashSet<>();
+        /** Game time each book was first collected; absent (or 0) means unknown. */
+        private final Map<String, Long> discoveredAt = new HashMap<>();
+
         boolean preventDuplicatePickup = false;
         boolean hasEverReceivedCodex = false;
         /** Soul-bound Codex parked at death, restored on respawn. */
         @Nullable
         CompoundTag pendingCodex = null;
+
+        // --- Collected ---
+
+        boolean isCollected(String bookId) {
+            return collectedBookIds.contains(bookId);
+        }
+
+        /** Adds a master copy and stamps discovery. The book stays unread. */
+        boolean addCollected(String bookId, long gameTime) {
+            if (!collectedBookIds.add(bookId)) return false;
+            if (gameTime > 0) discoveredAt.put(bookId, gameTime);
+            return true;
+        }
+
+        /** Drops the book from every structure — collected, spares, read, favorite, discovery. */
+        boolean remove(String bookId) {
+            boolean changed = collectedBookIds.remove(bookId);
+            if (bookCopies.remove(bookId) != null) changed = true;
+            if (readBookIds.remove(bookId)) changed = true;
+            if (favoriteBookIds.remove(bookId)) changed = true;
+            if (discoveredAt.remove(bookId) != null) changed = true;
+            return changed;
+        }
+
+        /** Wipes collection state; the initial-grant flag deliberately survives. */
+        void clearAll() {
+            collectedBookIds.clear();
+            bookCopies.clear();
+            readBookIds.clear();
+            favoriteBookIds.clear();
+            discoveredAt.clear();
+        }
+
+        void retainAll(Set<String> keepIds) {
+            collectedBookIds.retainAll(keepIds);
+            bookCopies.keySet().retainAll(keepIds);
+            readBookIds.retainAll(keepIds);
+            favoriteBookIds.retainAll(keepIds);
+            discoveredAt.keySet().retainAll(keepIds);
+        }
+
+        int collectedCount() {
+            return collectedBookIds.size();
+        }
+
+        Set<String> collectedView() {
+            return Set.copyOf(collectedBookIds);
+        }
+
+        // --- Read / favorite / discovery ---
+
+        boolean isRead(String bookId) {
+            return readBookIds.contains(bookId);
+        }
+
+        boolean markRead(String bookId) {
+            if (!collectedBookIds.contains(bookId)) return false;
+            return readBookIds.add(bookId);
+        }
+
+        Set<String> readView() {
+            return Set.copyOf(readBookIds);
+        }
+
+        boolean isFavorite(String bookId) {
+            return favoriteBookIds.contains(bookId);
+        }
+
+        boolean setFavorite(String bookId, boolean favorite) {
+            if (!collectedBookIds.contains(bookId)) return false;
+            return favorite ? favoriteBookIds.add(bookId) : favoriteBookIds.remove(bookId);
+        }
+
+        Set<String> favoritesView() {
+            return Set.copyOf(favoriteBookIds);
+        }
+
+        long discoveredAt(String bookId) {
+            return discoveredAt.getOrDefault(bookId, 0L);
+        }
+
+        // --- Spare copies ---
+
+        int copies(String bookId) {
+            return bookCopies.getOrDefault(bookId, 0);
+        }
+
+        boolean addCopy(String bookId) {
+            int current = bookCopies.getOrDefault(bookId, 0);
+            if (current >= MAX_SPARE_COPIES) return false; // already at cap; ignore further duplicates
+            bookCopies.put(bookId, current + 1);
+            return true;
+        }
+
+        boolean consumeCopy(String bookId) {
+            int current = bookCopies.getOrDefault(bookId, 0);
+            if (current <= 0) return false;
+            if (current == 1) {
+                bookCopies.remove(bookId);
+            } else {
+                bookCopies.put(bookId, current - 1);
+            }
+            return true;
+        }
+
+        Map<String, Integer> copiesView() {
+            return Map.copyOf(bookCopies);
+        }
+
+        // --- NBT ---
+
+        static PlayerCodexData load(CompoundTag playerTag) {
+            PlayerCodexData pData = new PlayerCodexData();
+
+            ListTag collected = playerTag.getList("collected", Tag.TAG_STRING);
+            for (int i = 0; i < collected.size(); i++) {
+                pData.collectedBookIds.add(collected.getString(i));
+            }
+
+            // Spare-copy bank (absent in pre-2.x.x saves -> empty map)
+            CompoundTag copies = playerTag.getCompound("copies");
+            for (String bookId : copies.getAllKeys()) {
+                int count = copies.getInt(bookId);
+                if (count > 0) pData.bookCopies.put(bookId, count);
+            }
+
+            // Version 1 saves have no read state: everything already collected counts
+            // as read, so a migrating player is not flooded with unread entries.
+            if (playerTag.contains("read", Tag.TAG_LIST)) {
+                ListTag read = playerTag.getList("read", Tag.TAG_STRING);
+                for (int i = 0; i < read.size(); i++) {
+                    String id = read.getString(i);
+                    if (pData.collectedBookIds.contains(id)) pData.readBookIds.add(id);
+                }
+            } else {
+                pData.readBookIds.addAll(pData.collectedBookIds);
+            }
+
+            ListTag favorites = playerTag.getList("favorites", Tag.TAG_STRING);
+            for (int i = 0; i < favorites.size(); i++) {
+                String id = favorites.getString(i);
+                if (pData.collectedBookIds.contains(id)) pData.favoriteBookIds.add(id);
+            }
+
+            CompoundTag discovered = playerTag.getCompound("discovered");
+            for (String bookId : discovered.getAllKeys()) {
+                long when = discovered.getLong(bookId);
+                if (when > 0 && pData.collectedBookIds.contains(bookId)) {
+                    pData.discoveredAt.put(bookId, when);
+                }
+            }
+
+            pData.preventDuplicatePickup = playerTag.getBoolean("prevent_duplicates");
+            pData.hasEverReceivedCodex = playerTag.getBoolean("has_codex");
+
+            if (playerTag.contains("pending_codex", Tag.TAG_COMPOUND)) {
+                pData.pendingCodex = playerTag.getCompound("pending_codex");
+            }
+
+            return pData;
+        }
+
+        static CompoundTag save(PlayerCodexData pData) {
+            CompoundTag playerTag = new CompoundTag();
+
+            playerTag.put("collected", toStringList(pData.collectedBookIds));
+
+            CompoundTag copies = new CompoundTag();
+            for (Map.Entry<String, Integer> copyEntry : pData.bookCopies.entrySet()) {
+                copies.putInt(copyEntry.getKey(), copyEntry.getValue());
+            }
+            playerTag.put("copies", copies);
+
+            playerTag.put("read", toStringList(pData.readBookIds));
+            playerTag.put("favorites", toStringList(pData.favoriteBookIds));
+
+            CompoundTag discovered = new CompoundTag();
+            for (Map.Entry<String, Long> discoveryEntry : pData.discoveredAt.entrySet()) {
+                discovered.putLong(discoveryEntry.getKey(), discoveryEntry.getValue());
+            }
+            playerTag.put("discovered", discovered);
+
+            playerTag.putBoolean("prevent_duplicates", pData.preventDuplicatePickup);
+            playerTag.putBoolean("has_codex", pData.hasEverReceivedCodex);
+
+            if (pData.pendingCodex != null) {
+                playerTag.put("pending_codex", pData.pendingCodex);
+            }
+
+            return playerTag;
+        }
+
+        private static ListTag toStringList(Set<String> ids) {
+            ListTag list = new ListTag();
+            for (String id : ids) {
+                list.add(StringTag.valueOf(id));
+            }
+            return list;
+        }
     }
 
     /** A stashed Codex plus the Curios slot it should be returned to, if any. */
