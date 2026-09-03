@@ -6,6 +6,7 @@ import com.mojang.brigadier.arguments.StringArgumentType;
 import com.mojang.brigadier.context.CommandContext;
 import com.mojang.brigadier.suggestion.SuggestionProvider;
 import com.rpglore.RpgLoreMod;
+import com.rpglore.acquisition.LoreAcquisitionService;
 import com.rpglore.codex.CodexService;
 import com.rpglore.codex.CodexTrackingData;
 import com.rpglore.codex.LoreCodexItem;
@@ -408,7 +409,8 @@ public final class RpgLoreCommands {
 
         int count = 0;
         for (ServerPlayer player : targets) {
-            service.collectBook(player, bookId);
+            LoreAcquisitionService.collect(player, bookId,
+                    LoreAcquisitionService.LoreAcquisitionSource.COMMAND);
             count++;
         }
         final int total = count;

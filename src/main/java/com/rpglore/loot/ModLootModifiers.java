@@ -13,4 +13,7 @@ public class ModLootModifiers {
 
     public static final RegistryObject<Codec<LoreBookLootModifier>> LORE_BOOK_DROPS =
             LOOT_MODIFIER_SERIALIZERS.register("lore_drops", LoreBookLootModifier.CODEC);
+
+    public static final RegistryObject<Codec<LootTableLoreModifier>> LOOT_TABLE_DROPS =
+            LOOT_MODIFIER_SERIALIZERS.register("loot_table_drops", LootTableLoreModifier.CODEC);
 }

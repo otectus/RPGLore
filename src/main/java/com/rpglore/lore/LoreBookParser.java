@@ -3,6 +3,7 @@ package com.rpglore.lore;
 import com.google.gson.*;
 import com.google.gson.stream.JsonReader;
 import com.google.gson.stream.JsonToken;
+import com.rpglore.lore.acquisition.AcquisitionRule;
 import net.minecraft.resources.ResourceLocation;
 
 import javax.annotation.Nullable;
@@ -31,12 +32,26 @@ public final class LoreBookParser {
     private static final Set<String> TOP_LEVEL_KEYS = Set.of(
             "format_version", "id", "title", "author", "generation", "weight", "pages",
             "title_color", "author_color", "description", "description_color",
-            "hide_generation", "show_glint", "category", "codex_exclude", "drop_conditions");
+            "hide_generation", "show_glint", "category", "codex_exclude", "drop_conditions",
+            "acquisition", "tags", "discovery_hint", "series", "series_order");
 
     private static final Set<String> DROP_CONDITION_KEYS = Set.of(
             "mob_types", "mob_tags", "biomes", "biome_tags", "dimensions",
             "min_y", "max_y", "time", "weather",
             "require_player_kill", "base_chance", "max_copies_per_player");
+
+    /** entity_drop acquisition entries accept the drop_conditions keys plus "type" and the "chance" alias. */
+    private static final Set<String> ENTITY_DROP_KEYS = union(DROP_CONDITION_KEYS, Set.of("type", "chance"));
+
+    private static final Set<String> LOOT_TABLE_KEYS = Set.of("type", "loot_tables", "chance", "weight");
+
+    private static final Set<String> ADVANCEMENT_KEYS = Set.of("type", "advancements", "delivery");
+
+    private static Set<String> union(Set<String> a, Set<String> b) {
+        Set<String> merged = new HashSet<>(a);
+        merged.addAll(b);
+        return Set.copyOf(merged);
+    }
 
     /** Extracts position and path out of a Gson syntax error message. */
     private static final Pattern GSON_POSITION =
@@ -86,7 +101,7 @@ public final class LoreBookParser {
 
         JsonObject root = element.getAsJsonObject();
 
-        checkFormatVersion(root, ctx);
+        int formatVersion = checkFormatVersion(root, ctx);
         checkUnknownKeys(root, TOP_LEVEL_KEYS, "$", ctx);
 
         // id: explicit field or derived from the source filename
@@ -132,22 +147,32 @@ public final class LoreBookParser {
         String category = getStringOrDefault(root, "category", null);
         boolean codexExclude = ctx.readBoolean(root, "codex_exclude", "$.codex_exclude", false);
 
-        DropCondition dropCondition = readDropCondition(root, ctx);
+        List<String> tags = readTags(root, ctx);
+        String discoveryHint = getStringOrDefault(root, "discovery_hint", null);
+        String series = getStringOrDefault(root, "series", null);
+        int seriesOrder = ctx.readInt(root, "series_order", "$.series_order", 0);
+        if (seriesOrder < 0) {
+            ctx.warn("$.series_order", "Invalid series_order " + seriesOrder + ", clamping to 0.");
+            seriesOrder = 0;
+        }
+
+        List<AcquisitionRule> acquisition = readAcquisition(root, ctx);
 
         if (ctx.fatal || pages == null) {
             return ctx.toReport(null);
         }
 
         LoreBookDefinition def = new LoreBookDefinition(id, title, author, generation, weight,
-                dropCondition, pages, titleColor, authorColor, description, descriptionColor,
-                hideGeneration, showGlint, category, codexExclude);
+                acquisition, pages, titleColor, authorColor, description, descriptionColor,
+                hideGeneration, showGlint, category, codexExclude,
+                tags, discoveryHint, series, seriesOrder, formatVersion);
         return ctx.toReport(def);
     }
 
     // --- Structural checks ---
 
-    private static void checkFormatVersion(JsonObject root, Context ctx) {
-        if (!root.has("format_version")) return;
+    private static int checkFormatVersion(JsonObject root, Context ctx) {
+        if (!root.has("format_version")) return SUPPORTED_FORMAT_VERSION;
 
         JsonElement el = root.get("format_version");
         Integer version = null;
@@ -164,6 +189,7 @@ public final class LoreBookParser {
                     "Unknown format_version " + shown + "; this build supports "
                             + SUPPORTED_FORMAT_VERSION + ". Book was not loaded.");
         }
+        return version != null ? version : SUPPORTED_FORMAT_VERSION;
     }
 
     private static void checkUnknownKeys(JsonObject obj, Set<String> known, String pathPrefix, Context ctx) {
@@ -286,9 +312,172 @@ public final class LoreBookParser {
         return hex.toUpperCase(Locale.ROOT);
     }
 
-    private static DropCondition readDropCondition(JsonObject root, Context ctx) {
+    // --- Acquisition ---
+
+    /**
+     * Builds the book's acquisition rules. Legacy {@code drop_conditions} becomes one
+     * entity_drop rule; {@code acquisition[]} entries are appended on top. A book that
+     * declares neither still gets the default entity_drop rule, so pre-2.2.0 books keep
+     * dropping exactly as they did.
+     */
+    private static List<AcquisitionRule> readAcquisition(JsonObject root, Context ctx) {
+        List<AcquisitionRule> rules = new ArrayList<>();
+
+        DropCondition legacy = readLegacyDropCondition(root, ctx);
+        if (legacy != null) {
+            rules.add(new AcquisitionRule.EntityDropAcquisition(legacy));
+        }
+
+        if (root.has("acquisition")) {
+            if (!root.get("acquisition").isJsonArray()) {
+                ctx.warn("$.acquisition", "acquisition is not an array, ignoring it.",
+                        "an array of rule objects", describe(root.get("acquisition")));
+            } else {
+                JsonArray array = root.getAsJsonArray("acquisition");
+                for (int i = 0; i < array.size(); i++) {
+                    String path = "$.acquisition[" + i + "]";
+                    JsonElement elem = array.get(i);
+                    if (!elem.isJsonObject()) {
+                        ctx.warn(path, "Acquisition rule is not an object, skipping it.",
+                                "an object", describe(elem));
+                        continue;
+                    }
+                    AcquisitionRule rule = readAcquisitionRule(elem.getAsJsonObject(), path, ctx);
+                    if (rule != null) rules.add(rule);
+                }
+            }
+        }
+
+        boolean hasEntityDrop = rules.stream()
+                .anyMatch(rule -> rule instanceof AcquisitionRule.EntityDropAcquisition);
+        if (!hasEntityDrop) {
+            rules.add(new AcquisitionRule.EntityDropAcquisition(DropCondition.defaultCondition()));
+        }
+        return List.copyOf(rules);
+    }
+
+    @Nullable
+    private static AcquisitionRule readAcquisitionRule(JsonObject obj, String path, Context ctx) {
+        String type = ctx.readString(obj, "type", path + ".type");
+        if (type == null) {
+            ctx.error(path + ".type", "Acquisition rule has no type. Book was not loaded.",
+                    "one of entity_drop, loot_table, advancement", "nothing");
+            return null;
+        }
+
+        switch (type.toLowerCase(Locale.ROOT)) {
+            case "entity_drop" -> {
+                checkUnknownKeys(obj, ENTITY_DROP_KEYS, path, ctx);
+                return new AcquisitionRule.EntityDropAcquisition(parseDropCondition(obj, path, ctx, true));
+            }
+            case "loot_table" -> {
+                checkUnknownKeys(obj, LOOT_TABLE_KEYS, path, ctx);
+                return readLootTableRule(obj, path, ctx);
+            }
+            case "advancement" -> {
+                checkUnknownKeys(obj, ADVANCEMENT_KEYS, path, ctx);
+                return readAdvancementRule(obj, path, ctx);
+            }
+            default -> {
+                ctx.error(path + ".type", "Unknown acquisition type '" + type + "'. Book was not loaded.",
+                        "one of entity_drop, loot_table, advancement", "'" + type + "'");
+                return null;
+            }
+        }
+    }
+
+    @Nullable
+    private static AcquisitionRule readLootTableRule(JsonObject obj, String path, Context ctx) {
+        List<ResourceLocation> tables = readStrictResourceLocationList(obj, "loot_tables",
+                path + ".loot_tables", ctx);
+        if (tables == null || tables.isEmpty()) {
+            ctx.error(path + ".loot_tables",
+                    "loot_table acquisition needs a non-empty loot_tables array. Book was not loaded.",
+                    "an array of loot table ids such as minecraft:chests/simple_dungeon",
+                    tables == null ? "nothing" : "an empty array");
+            return null;
+        }
+
+        double chance = ctx.readDouble(obj, "chance", path + ".chance", 1.0);
+        if (chance < 0.0 || chance > 1.0) {
+            ctx.warn(path + ".chance", "chance " + chance + " is outside [0.0, 1.0], clamping.");
+            chance = Math.max(0.0, Math.min(1.0, chance));
+        }
+
+        double weight = ctx.readDouble(obj, "weight", path + ".weight", 1.0);
+        if (weight <= 0) {
+            ctx.warn(path + ".weight", "Invalid weight " + weight + ", clamping to 0.01.");
+            weight = 0.01;
+        }
+
+        return new AcquisitionRule.LootTableAcquisition(tables, chance, weight);
+    }
+
+    @Nullable
+    private static AcquisitionRule readAdvancementRule(JsonObject obj, String path, Context ctx) {
+        List<ResourceLocation> advancements = readStrictResourceLocationList(obj, "advancements",
+                path + ".advancements", ctx);
+        if (advancements == null || advancements.isEmpty()) {
+            ctx.error(path + ".advancements",
+                    "advancement acquisition needs a non-empty advancements array. Book was not loaded.",
+                    "an array of advancement ids such as minecraft:story/root",
+                    advancements == null ? "nothing" : "an empty array");
+            return null;
+        }
+
+        AcquisitionRule.Delivery delivery = AcquisitionRule.Delivery.CODEX;
+        if (obj.has("delivery")) {
+            String raw = ctx.readString(obj, "delivery", path + ".delivery");
+            if (raw != null) {
+                try {
+                    delivery = AcquisitionRule.Delivery.valueOf(raw.toUpperCase(Locale.ROOT));
+                } catch (IllegalArgumentException e) {
+                    ctx.error(path + ".delivery",
+                            "Unknown delivery '" + raw + "'. Book was not loaded.",
+                            "one of codex, inventory", "'" + raw + "'");
+                    return null;
+                }
+            }
+        }
+
+        return new AcquisitionRule.AdvancementAcquisition(advancements, delivery);
+    }
+
+    /** Top-level tags: trimmed, blanks dropped with a warning. */
+    private static List<String> readTags(JsonObject root, Context ctx) {
+        if (!root.has("tags")) return List.of();
+        if (!root.get("tags").isJsonArray()) {
+            ctx.warn("$.tags", "tags is not an array, ignoring it.",
+                    "an array of strings", describe(root.get("tags")));
+            return List.of();
+        }
+
+        List<String> tags = new ArrayList<>();
+        JsonArray array = root.getAsJsonArray("tags");
+        for (int i = 0; i < array.size(); i++) {
+            JsonElement elem = array.get(i);
+            String path = "$.tags[" + i + "]";
+            if (!elem.isJsonPrimitive()) {
+                ctx.warn(path, "Tag is not a string, skipping it.", "a string", describe(elem));
+                continue;
+            }
+            String value = elem.getAsString().trim();
+            if (value.isEmpty()) {
+                ctx.warn(path, "Blank tag was dropped.");
+                continue;
+            }
+            tags.add(value);
+        }
+        return List.copyOf(tags);
+    }
+
+    // --- Drop conditions ---
+
+    /** @return the legacy condition, or null when the book has no drop_conditions object. */
+    @Nullable
+    private static DropCondition readLegacyDropCondition(JsonObject root, Context ctx) {
         if (!root.has("drop_conditions")) {
-            return DropCondition.defaultCondition();
+            return null;
         }
         if (!root.get("drop_conditions").isJsonObject()) {
             ctx.warn("$.drop_conditions", "drop_conditions is not an object, using defaults.",
@@ -298,18 +487,26 @@ public final class LoreBookParser {
 
         JsonObject drop = root.getAsJsonObject("drop_conditions");
         checkUnknownKeys(drop, DROP_CONDITION_KEYS, "$.drop_conditions", ctx);
+        return parseDropCondition(drop, "$.drop_conditions", ctx, false);
+    }
 
+    /**
+     * Shared body for legacy {@code drop_conditions} and {@code entity_drop} acquisition
+     * entries. {@code allowChanceAlias} enables the entity_drop-only "chance" alias.
+     */
+    private static DropCondition parseDropCondition(JsonObject drop, String path, Context ctx,
+                                                    boolean allowChanceAlias) {
         List<ResourceLocation> mobTypes = readResourceLocationList(drop, "mob_types");
         List<String> mobTags = readStringList(drop, "mob_tags");
         List<ResourceLocation> biomes = readResourceLocationList(drop, "biomes");
         List<String> biomeTags = readStringList(drop, "biome_tags");
         List<ResourceLocation> dimensions = readResourceLocationList(drop, "dimensions");
 
-        Integer minY = drop.has("min_y") ? ctx.readInt(drop, "min_y", "$.drop_conditions.min_y", 0) : null;
-        Integer maxY = drop.has("max_y") ? ctx.readInt(drop, "max_y", "$.drop_conditions.max_y", 0) : null;
+        Integer minY = drop.has("min_y") ? ctx.readInt(drop, "min_y", path + ".min_y", 0) : null;
+        Integer maxY = drop.has("max_y") ? ctx.readInt(drop, "max_y", path + ".max_y", 0) : null;
 
         if (minY != null && maxY != null && minY > maxY) {
-            ctx.warn("$.drop_conditions.min_y",
+            ctx.warn(path + ".min_y",
                     "min_y (" + minY + ") is greater than max_y (" + maxY + "), swapping values.");
             Integer temp = minY;
             minY = maxY;
@@ -318,12 +515,12 @@ public final class LoreBookParser {
 
         DropCondition.TimeFilter time = DropCondition.TimeFilter.ANY;
         if (drop.has("time")) {
-            String raw = ctx.readString(drop, "time", "$.drop_conditions.time");
+            String raw = ctx.readString(drop, "time", path + ".time");
             if (raw != null) {
                 try {
                     time = DropCondition.TimeFilter.valueOf(raw.toUpperCase(Locale.ROOT));
                 } catch (IllegalArgumentException e) {
-                    ctx.warn("$.drop_conditions.time", "Invalid time filter '" + raw + "', using ANY.",
+                    ctx.warn(path + ".time", "Invalid time filter '" + raw + "', using ANY.",
                             "one of ANY, DAY_ONLY, NIGHT_ONLY", "'" + raw + "'");
                 }
             }
@@ -331,38 +528,77 @@ public final class LoreBookParser {
 
         DropCondition.WeatherFilter weather = DropCondition.WeatherFilter.ANY;
         if (drop.has("weather")) {
-            String raw = ctx.readString(drop, "weather", "$.drop_conditions.weather");
+            String raw = ctx.readString(drop, "weather", path + ".weather");
             if (raw != null) {
                 try {
                     weather = DropCondition.WeatherFilter.valueOf(raw.toUpperCase(Locale.ROOT));
                 } catch (IllegalArgumentException e) {
-                    ctx.warn("$.drop_conditions.weather", "Invalid weather filter '" + raw + "', using ANY.",
+                    ctx.warn(path + ".weather", "Invalid weather filter '" + raw + "', using ANY.",
                             "one of ANY, CLEAR_ONLY, RAIN_ONLY, THUNDER_ONLY", "'" + raw + "'");
                 }
             }
         }
 
         boolean requirePlayerKill = ctx.readBoolean(drop, "require_player_kill",
-                "$.drop_conditions.require_player_kill", true);
+                path + ".require_player_kill", true);
 
-        Double baseChance = drop.has("base_chance")
-                ? ctx.readDouble(drop, "base_chance", "$.drop_conditions.base_chance", 0.0) : null;
+        // "chance" is the entity_drop spelling of base_chance; when both appear, chance wins.
+        String chanceKey = "base_chance";
+        if (allowChanceAlias && drop.has("chance")) {
+            if (drop.has("base_chance")) {
+                ctx.warn(path + ".chance",
+                        "Both chance and base_chance are set; using chance and ignoring base_chance.");
+            }
+            chanceKey = "chance";
+        }
+
+        Double baseChance = drop.has(chanceKey)
+                ? ctx.readDouble(drop, chanceKey, path + "." + chanceKey, 0.0) : null;
         if (baseChance != null && (baseChance < 0.0 || baseChance > 1.0)) {
-            ctx.warn("$.drop_conditions.base_chance",
-                    "base_chance " + baseChance + " is outside [0.0, 1.0], clamping.");
+            ctx.warn(path + "." + chanceKey,
+                    chanceKey + " " + baseChance + " is outside [0.0, 1.0], clamping.");
             baseChance = Math.max(0.0, Math.min(1.0, baseChance));
         }
 
         int maxCopiesPerPlayer = ctx.readInt(drop, "max_copies_per_player",
-                "$.drop_conditions.max_copies_per_player", -1);
+                path + ".max_copies_per_player", -1);
         if (maxCopiesPerPlayer < -1) {
-            ctx.warn("$.drop_conditions.max_copies_per_player",
+            ctx.warn(path + ".max_copies_per_player",
                     "Invalid max_copies_per_player " + maxCopiesPerPlayer + ", using -1 (unlimited).");
             maxCopiesPerPlayer = -1;
         }
 
         return new DropCondition(mobTypes, mobTags, biomes, biomeTags, dimensions,
                 minY, maxY, time, weather, requirePlayerKill, baseChance, maxCopiesPerPlayer);
+    }
+
+    /**
+     * Reads an array of resource locations, reporting each malformed entry as an error.
+     * @return null when the key is missing or is not an array
+     */
+    @Nullable
+    private static List<ResourceLocation> readStrictResourceLocationList(JsonObject obj, String key,
+                                                                         String path, Context ctx) {
+        if (!obj.has(key) || !obj.get(key).isJsonArray()) return null;
+        List<ResourceLocation> list = new ArrayList<>();
+        JsonArray array = obj.getAsJsonArray(key);
+        for (int i = 0; i < array.size(); i++) {
+            JsonElement elem = array.get(i);
+            String elemPath = path + "[" + i + "]";
+            if (!elem.isJsonPrimitive()) {
+                ctx.error(elemPath, "Entry is not a resource location string. Book was not loaded.",
+                        "a resource location string", describe(elem));
+                continue;
+            }
+            String val = elem.getAsString();
+            if (!ResourceLocation.isValidResourceLocation(val)) {
+                ctx.error(elemPath, "Invalid resource location '" + val + "'. Book was not loaded.",
+                        "a valid resource location", "'" + val + "'");
+                continue;
+            }
+            list.add(new ResourceLocation(val));
+        }
+        return list;
     }
 
     @Nullable

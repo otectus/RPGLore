@@ -4,6 +4,7 @@ import com.mojang.serialization.Codec;
 import com.mojang.serialization.codecs.RecordCodecBuilder;
 import com.rpglore.RpgLoreMod;
 import com.rpglore.config.LoreBookRegistry;
+import com.rpglore.config.LoreBookRegistry.MatchedDrop;
 import com.rpglore.config.ServerConfig;
 import com.rpglore.lore.DropConditionContext;
 import com.rpglore.lore.LoreBookDefinition;
@@ -45,6 +46,8 @@ public class LoreBookLootModifier extends LootModifier {
 
     @Override
     protected ObjectArrayList<ItemStack> doApply(ObjectArrayList<ItemStack> generatedLoot, LootContext context) {
+        if (!ServerConfig.ENABLE_ENTITY_DROPS.get()) return generatedLoot;
+
         Entity victimEntity = context.getParamOrNull(LootContextParams.THIS_ENTITY);
 
         // Must be a living entity dying
@@ -72,8 +75,8 @@ public class LoreBookLootModifier extends LootModifier {
         // Build condition context
         DropConditionContext ctx = DropConditionContext.from(context, victim, player);
 
-        // Get all matching book definitions
-        List<LoreBookDefinition> matching = LoreBookRegistry.getMatchingBooks(ctx);
+        // Get all matching book definitions, each paired with the entity_drop rule that matched
+        List<MatchedDrop> matching = LoreBookRegistry.getMatchingBooks(ctx);
         if (matching.isEmpty()) return generatedLoot;
 
         // Calculate effective global drop chance
@@ -94,13 +97,13 @@ public class LoreBookLootModifier extends LootModifier {
         // H1: Split candidates into those with and without base_chance overrides.
         // Books with base_chance use their own chance exclusively (truly overrides global).
         // Books without base_chance use the global chance.
-        List<LoreBookDefinition> withOverride = new ArrayList<>();
-        List<LoreBookDefinition> withoutOverride = new ArrayList<>();
-        for (LoreBookDefinition def : matching) {
-            if (def.dropCondition().baseChance() != null) {
-                withOverride.add(def);
+        List<MatchedDrop> withOverride = new ArrayList<>();
+        List<MatchedDrop> withoutOverride = new ArrayList<>();
+        for (MatchedDrop match : matching) {
+            if (match.rule().condition().baseChance() != null) {
+                withOverride.add(match);
             } else {
-                withoutOverride.add(def);
+                withoutOverride.add(match);
             }
         }
 
@@ -108,10 +111,10 @@ public class LoreBookLootModifier extends LootModifier {
         // Process base_chance books first (pack author explicitly configured these).
         int droppedCount = 0;
 
-        for (LoreBookDefinition def : withOverride) {
+        for (MatchedDrop match : withOverride) {
             if (droppedCount >= maxBooks) break;
-            if (random.nextDouble() < def.dropCondition().baseChance()) {
-                if (addBookToLoot(def, player, generatedLoot, victim)) {
+            if (random.nextDouble() < match.rule().condition().baseChance()) {
+                if (addBookToLoot(match, player, generatedLoot, victim)) {
                     droppedCount++;
                 }
             }
@@ -120,9 +123,9 @@ public class LoreBookLootModifier extends LootModifier {
         // Process books without base_chance override: roll global chance, then select
         if (droppedCount < maxBooks && !withoutOverride.isEmpty() && random.nextDouble() < globalChance) {
             int remaining = maxBooks - droppedCount;
-            List<LoreBookDefinition> selected = selectBooks(withoutOverride, random, remaining, useWeights);
-            for (LoreBookDefinition def : selected) {
-                addBookToLoot(def, player, generatedLoot, victim);
+            List<MatchedDrop> selected = selectBooks(withoutOverride, random, remaining, useWeights);
+            for (MatchedDrop match : selected) {
+                addBookToLoot(match, player, generatedLoot, victim);
             }
         }
 
@@ -134,12 +137,14 @@ public class LoreBookLootModifier extends LootModifier {
      * H2: Recording happens AFTER the stack is added to loot.
      * @return true if the book was actually added
      */
-    private boolean addBookToLoot(LoreBookDefinition def, Player player,
+    private boolean addBookToLoot(MatchedDrop match, Player player,
                                ObjectArrayList<ItemStack> generatedLoot, LivingEntity victim) {
+        LoreBookDefinition def = match.definition();
+        int maxCopies = match.rule().condition().maxCopiesPerPlayer();
+
         // Per-player copy limit check
-        if (player != null && def.dropCondition().maxCopiesPerPlayer() >= 0) {
-            if (!LoreBookRegistry.canPlayerReceive(player.getUUID(), def.id(),
-                    def.dropCondition().maxCopiesPerPlayer())) {
+        if (player != null && maxCopies >= 0) {
+            if (!LoreBookRegistry.canPlayerReceive(player.getUUID(), def.id(), maxCopies)) {
                 return false;
             }
         }
@@ -150,34 +155,34 @@ public class LoreBookLootModifier extends LootModifier {
         generatedLoot.add(LoreBookItem.createStack(def));
 
         // H2: Record AFTER successful addition to loot
-        if (player != null && def.dropCondition().maxCopiesPerPlayer() >= 0) {
+        if (player != null && maxCopies >= 0) {
             LoreBookRegistry.recordPlayerReceived(player.getUUID(), def.id());
         }
         return true;
     }
 
     // M7: Short-circuit when all candidates fit, regardless of useWeights
-    private static List<LoreBookDefinition> selectBooks(
-            List<LoreBookDefinition> candidates, RandomSource random, int max, boolean useWeights) {
+    private static List<MatchedDrop> selectBooks(
+            List<MatchedDrop> candidates, RandomSource random, int max, boolean useWeights) {
 
         if (candidates.size() <= max) {
             return candidates;
         }
 
-        List<LoreBookDefinition> selected = new ArrayList<>();
-        List<LoreBookDefinition> pool = new ArrayList<>(candidates);
+        List<MatchedDrop> selected = new ArrayList<>();
+        List<MatchedDrop> pool = new ArrayList<>(candidates);
 
         for (int i = 0; i < max && !pool.isEmpty(); i++) {
             if (useWeights) {
-                double totalWeight = pool.stream().mapToDouble(LoreBookDefinition::weight).sum();
+                double totalWeight = pool.stream().mapToDouble(m -> m.definition().weight()).sum();
                 double roll = random.nextDouble() * totalWeight;
                 double cumulative = 0;
 
-                LoreBookDefinition pick = pool.get(pool.size() - 1);
-                for (LoreBookDefinition def : pool) {
-                    cumulative += def.weight();
+                MatchedDrop pick = pool.get(pool.size() - 1);
+                for (MatchedDrop match : pool) {
+                    cumulative += match.definition().weight();
                     if (roll < cumulative) {
-                        pick = def;
+                        pick = match;
                         break;
                     }
                 }

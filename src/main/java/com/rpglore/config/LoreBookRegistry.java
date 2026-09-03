@@ -3,6 +3,8 @@ package com.rpglore.config;
 import com.rpglore.data.LoreTrackingData;
 import com.rpglore.lore.DropConditionContext;
 import com.rpglore.lore.LoreBookDefinition;
+import com.rpglore.lore.acquisition.AcquisitionRule;
+import net.minecraft.resources.ResourceLocation;
 
 import javax.annotation.Nullable;
 import java.util.*;
@@ -22,14 +24,68 @@ public final class LoreBookRegistry {
      */
     private static volatile int revision = 1;
 
+    /** Loot table id -> the candidates that inject into it. Rebuilt on every setBooks. */
+    private static volatile Map<ResourceLocation, List<LootTableCandidate>> LOOT_TABLE_INDEX = Map.of();
+
+    /** Advancement id -> the candidates it grants. Rebuilt on every setBooks. */
+    private static volatile Map<ResourceLocation, List<AdvancementCandidate>> ADVANCEMENT_INDEX = Map.of();
+
     @Nullable
     private static volatile LoreTrackingData trackingData;
+
+    /** One book matched by one of its entity_drop rules. */
+    public record MatchedDrop(LoreBookDefinition definition,
+                              AcquisitionRule.EntityDropAcquisition rule) {}
+
+    /** One book that injects into a loot table, with the rule that says how. */
+    public record LootTableCandidate(LoreBookDefinition definition,
+                                     AcquisitionRule.LootTableAcquisition rule) {}
+
+    /** One book granted by an advancement, with the rule that says how it is delivered. */
+    public record AdvancementCandidate(LoreBookDefinition definition,
+                                       AcquisitionRule.AdvancementAcquisition rule) {}
 
     public static void setBooks(Map<String, LoreBookDefinition> books) {
         Map<String, LoreBookDefinition> newBooks = Collections.unmodifiableMap(books);
         boolean changed = !newBooks.equals(BOOKS);
         BOOKS = newBooks;
+        LOOT_TABLE_INDEX = buildLootTableIndex(newBooks);
+        ADVANCEMENT_INDEX = buildAdvancementIndex(newBooks);
         if (changed) revision++;
+    }
+
+    private static Map<ResourceLocation, List<LootTableCandidate>> buildLootTableIndex(
+            Map<String, LoreBookDefinition> books) {
+        Map<ResourceLocation, List<LootTableCandidate>> index = new HashMap<>();
+        for (LoreBookDefinition def : books.values()) {
+            for (AcquisitionRule.LootTableAcquisition rule : def.lootTableRules()) {
+                for (ResourceLocation table : rule.lootTables()) {
+                    index.computeIfAbsent(table, key -> new ArrayList<>())
+                            .add(new LootTableCandidate(def, rule));
+                }
+            }
+        }
+        return freeze(index);
+    }
+
+    private static Map<ResourceLocation, List<AdvancementCandidate>> buildAdvancementIndex(
+            Map<String, LoreBookDefinition> books) {
+        Map<ResourceLocation, List<AdvancementCandidate>> index = new HashMap<>();
+        for (LoreBookDefinition def : books.values()) {
+            for (AcquisitionRule.AdvancementAcquisition rule : def.advancementRules()) {
+                for (ResourceLocation advancement : rule.advancements()) {
+                    index.computeIfAbsent(advancement, key -> new ArrayList<>())
+                            .add(new AdvancementCandidate(def, rule));
+                }
+            }
+        }
+        return freeze(index);
+    }
+
+    private static <K, V> Map<K, List<V>> freeze(Map<K, List<V>> index) {
+        Map<K, List<V>> frozen = new HashMap<>(index.size());
+        index.forEach((key, values) -> frozen.put(key, List.copyOf(values)));
+        return Collections.unmodifiableMap(frozen);
     }
 
     /** @return the current catalog revision; increments only on a real content change. */
@@ -48,14 +104,31 @@ public final class LoreBookRegistry {
 
     // --- Query methods ---
 
-    public static List<LoreBookDefinition> getMatchingBooks(DropConditionContext ctx) {
-        List<LoreBookDefinition> matching = new ArrayList<>();
+    /**
+     * Books whose entity_drop rules match this kill. A book with several entity_drop
+     * rules is returned at most once: the first rule that matches wins.
+     */
+    public static List<MatchedDrop> getMatchingBooks(DropConditionContext ctx) {
+        List<MatchedDrop> matching = new ArrayList<>();
         for (LoreBookDefinition def : BOOKS.values()) {
-            if (ctx.matches(def.dropCondition())) {
-                matching.add(def);
+            for (AcquisitionRule.EntityDropAcquisition rule : def.entityDropRules()) {
+                if (ctx.matches(rule.condition())) {
+                    matching.add(new MatchedDrop(def, rule));
+                    break;
+                }
             }
         }
         return matching;
+    }
+
+    /** @return the books that inject into this loot table, or an empty list */
+    public static List<LootTableCandidate> getLootTableRules(ResourceLocation tableId) {
+        return LOOT_TABLE_INDEX.getOrDefault(tableId, List.of());
+    }
+
+    /** @return the books granted by this advancement, or an empty list */
+    public static List<AdvancementCandidate> getAdvancementRules(ResourceLocation advancementId) {
+        return ADVANCEMENT_INDEX.getOrDefault(advancementId, List.of());
     }
 
     public static Collection<LoreBookDefinition> getAllBooks() {

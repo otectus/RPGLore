@@ -1,6 +1,7 @@
 {
     "replace": false,
     "entries": [
-        "rpg_lore:lore_drops"
+        "rpg_lore:lore_drops",
+        "rpg_lore:loot_table_drops"
     ]
 }

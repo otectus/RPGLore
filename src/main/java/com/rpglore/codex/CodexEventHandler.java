@@ -1,6 +1,7 @@
 package com.rpglore.codex;
 
 import com.rpglore.RpgLoreMod;
+import com.rpglore.acquisition.LoreAcquisitionService;
 import com.rpglore.compat.CuriosCompat;
 import com.rpglore.config.LoreBookRegistry;
 import com.rpglore.config.ServerConfig;
@@ -205,8 +206,9 @@ public class CodexEventHandler {
             // Otherwise bank it as a spare copy
             service.bankDuplicate(serverPlayer, bookId);
         } else {
-            // NEW book: record it as the permanent master copy
-            service.collectBook(serverPlayer, bookId);
+            // NEW book: record it as the permanent master copy (and fire LoreCollectedEvent)
+            LoreAcquisitionService.collect(serverPlayer, bookId,
+                    LoreAcquisitionService.LoreAcquisitionSource.PICKUP);
         }
 
         // Consume the item entity (destroy it from the world)

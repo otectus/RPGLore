@@ -84,6 +84,7 @@
   "rpg_lore.codex.tooltip.not_favorite": "Не е любимо",
   "rpg_lore.codex.tooltip.hidden": "???",
   "rpg_lore.codex.tooltip.discovery_hint": "Съвет: %s",
+  "rpg_lore.codex.tooltip.series": "Series: %s (%d)",
   "rpg_lore.codex.favorite.add": "Щракнете, за да добавите към „Любими“",
   "rpg_lore.codex.favorite.remove": "Щракнете, за да премахнете от „Любими“",
   "rpg_lore.codex.keybind.no_codex": "Не носите Lore Codex",

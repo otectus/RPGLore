@@ -84,6 +84,7 @@
   "rpg_lore.codex.tooltip.not_favorite": "Není oblíbený",
   "rpg_lore.codex.tooltip.hidden": "???",
   "rpg_lore.codex.tooltip.discovery_hint": "Nápověda: %s",
+  "rpg_lore.codex.tooltip.series": "Series: %s (%d)",
   "rpg_lore.codex.favorite.add": "Kliknutím přidáte do oblíbených",
   "rpg_lore.codex.favorite.remove": "Kliknutím odeberete z oblíbených",
   "rpg_lore.codex.keybind.no_codex": "Nenosíte kodex Lore",

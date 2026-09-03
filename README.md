@@ -86,6 +86,72 @@ Nested inside a `"drop_conditions"` object. Omitted fields match everything.
 | `time` | string | `"ANY"` | `"ANY"`, `"DAY_ONLY"`, or `"NIGHT_ONLY"` |
 | `weather` | string | `"ANY"` | `"ANY"`, `"CLEAR_ONLY"`, `"RAIN_ONLY"`, or `"THUNDER_ONLY"` |
 
+## Acquisition Methods
+
+Books acquire through one or more acquisition rules; rules are additive, so a book can drop from mobs, appear in chests, and be granted by advancements simultaneously. Legacy `drop_conditions` continues to work unchanged and becomes an `entity_drop` rule.
+
+### Entity Drops (from mob kills)
+
+A book may specify `drop_conditions` at the top level, which creates an implicit `entity_drop` rule. Alternatively (or additionally), declare explicit acquisition rules in an `acquisition` array; each entry with type `entity_drop` accepts all the same keys as `drop_conditions` plus `chance` as an alias for `base_chance`.
+
+```json
+{
+  "type": "entity_drop",
+  "mob_types": ["minecraft:zombie", "minecraft:skeleton"],
+  "require_player_kill": true,
+  "base_chance": 0.1
+}
+```
+
+### Loot Table Injection
+
+Insert a book into named loot tables (chests, fishing, gameplay tables). Each table generation can contain at most one book, selected by weight among candidates that passed their chance roll. Entity death tables are skipped here; mob drops stay with `entity_drop`.
+
+```json
+{
+  "type": "loot_table",
+  "loot_tables": ["minecraft:chests/simple_dungeon", "minecraft:chests/desert_pyramid"],
+  "chance": 0.5,
+  "weight": 2.0
+}
+```
+
+| Key | Type | Default | Notes |
+|-----|------|---------|-------|
+| `loot_tables` | array | *(required)* | Loot table IDs to inject into |
+| `chance` | number | `1.0` | Probability this rule activates per table generation (0.0--1.0) |
+| `weight` | number | `1.0` | Selection weight when multiple books compete for one slot |
+
+### Advancement Delivery
+
+Grant a book when a player earns any of the listed advancements. Codex delivery adds the book permanently to the collection; inventory delivery gives a physical copy once per advancement grant, dropping it at the player's feet if the inventory is full.
+
+```json
+{
+  "type": "advancement",
+  "advancements": ["minecraft:story/root", "minecraft:adventure/enter_the_end"],
+  "delivery": "codex"
+}
+```
+
+| Key | Type | Default | Notes |
+|-----|------|---------|-------|
+| `advancements` | array | *(required)* | Advancement IDs to trigger on |
+| `delivery` | string | `"codex"` | `"codex"` (adds to collection) or `"inventory"` (physical copy once) |
+
+### Acquisition Array
+
+Books without any `acquisition` array and without `drop_conditions` automatically get a default `entity_drop` rule so pre-2.2.0 books keep dropping unchanged.
+
+### New Book Metadata Fields
+
+| Field | Type | Default | Description |
+|-------|------|---------|-------------|
+| `tags` | array | *(none)* | Searchable keywords for Codex search (e.g. `["ruins", "war"]`); blank entries dropped |
+| `discovery_hint` | string | *(none)* | Hint shown on uncollected Codex entries when discovery hints are enabled |
+| `series` | string | *(none)* | Series name shown in the Codex entry tooltip |
+| `series_order` | int | `0` | Position within the series (negative values clamp to 0) |
+
 ### Example
 
 ```json
@@ -138,7 +204,7 @@ The Lore Codex is a soul-bound item that stores and tracks your lore book collec
 - **Auto-granted** on first login (configurable)
 - **Soul-bound** -- kept on death, cannot be dropped
 - **Browse & read** -- open the Codex GUI to browse your collected books. The collection counter shows how many books you've found vs. total available in the current category.
-- **Search** -- live-search across book titles, authors, and categories. Press Ctrl+F to focus the search box; hidden uncollected names cannot be matched by searches.
+- **Search** -- live-search across book titles, authors, categories, and tags. Press Ctrl+F to focus the search box; hidden uncollected names cannot be matched by searches.
 - **Organize by category** -- cycle through All Categories, individual categories, or Uncategorized books; the progress counter reflects your completion in the chosen category.
 - **Filter and sort** -- filter by All, Collected, Unread, Favorites, or Missing books. Sort by Default (unread first), Title, Category, or Recently found.
 - **Unread markers and favorites** -- collected books show an unread dot when not yet read (toggleable in client config); mark any book as a favorite with a clickable star, persisted server-side and across sessions.
@@ -147,6 +213,49 @@ The Lore Codex is a soul-bound item that stores and tracks your lore book collec
 - **Keyboard navigation** -- press Esc to close search or screen; use arrow keys to page through the list or select rows; press Enter to open a selected book. After closing a book, you return to the Codex with your previous search, category, filter, sort, and selection preserved.
 - **"Open Lore Codex" keybind** -- unbound by default, this optional hotkey opens the Codex browser when you carry the Codex in your inventory or Curios slot.
 - **Curios support** -- equip the Codex in a dedicated "codex" Curios slot if the Curios mod is installed. All features work from either inventory or Curios slot.
+
+## Integrating with RPG Lore
+
+Other mods can grant lore books to players or listen for collection events via the public API.
+
+### Granting Books
+
+Call `LoreAcquisitionService.collect()` on the server thread to add a book to a player's Codex:
+
+```java
+import com.rpglore.acquisition.LoreAcquisitionService;
+import com.rpglore.acquisition.LoreAcquisitionService.LoreAcquisitionSource;
+import net.minecraft.server.level.ServerPlayer;
+
+ServerPlayer player = /* ... */;
+LoreAcquisitionService.CollectResult result = 
+    LoreAcquisitionService.collect(player, "rpg_lore:my_book", LoreAcquisitionSource.API);
+if (result == LoreAcquisitionService.CollectResult.NEWLY_COLLECTED) {
+    // First time — the player got the book
+}
+```
+
+The `CollectResult` enum indicates what happened: `NEWLY_COLLECTED` (first acquisition, fires event), `ALREADY_COLLECTED` (no change), `NOT_FOUND` (invalid book ID), `EXCLUDED` (book marked `codex_exclude`), or `CODEX_DISABLED` (feature turned off in config).
+
+### Listening for Collection Events
+
+Subscribe to `LoreCollectedEvent` on the Forge event bus to react when a player collects a book for the first time:
+
+```java
+import com.rpglore.acquisition.LoreCollectedEvent;
+import net.minecraftforge.eventbus.api.SubscribeEvent;
+
+@Mod.EventBusSubscriber(modid = MOD_ID)
+public class MyEventHandler {
+    @SubscribeEvent
+    public static void onBookCollected(LoreCollectedEvent event) {
+        ServerPlayer player = event.getPlayer();
+        ResourceLocation loreId = event.getLoreId();
+        LoreAcquisitionSource source = event.getSource();
+        // Handle the collection
+    }
+}
+```
 
 ## Commands
 
@@ -177,6 +286,14 @@ The Lore Codex is a soul-bound item that stores and tracks your lore book collec
 | `lootScaling` | `false` | Looting enchantment increases drop chance |
 | `allowNonPlayerKills` | `false` | Allow non-player kills to trigger drops |
 
+### Acquisition Settings
+
+| Setting | Default | Description |
+|---------|---------|-------------|
+| `enableEntityDrops` | `true` | Allow books with `entity_drop` rules to drop from mob kills |
+| `enableLootTables` | `true` | Allow books with `loot_table` rules to inject into named loot tables |
+| `enableAdvancements` | `true` | Allow books with `advancement` rules to be granted when players earn advancements |
+
 ### Codex Settings
 
 | Setting | Default | Description |
@@ -188,7 +305,7 @@ The Lore Codex is a soul-bound item that stores and tracks your lore book collec
 | `allowCopy` | `true` | Allow copying books from the Codex |
 | `allowDuplicatePrevention` | `true` | Allow the duplicate handling toggle |
 | `revealUncollectedNames` | `false` | Show uncollected book names (vs. "???") |
-| `enableDiscoveryHints` | `true` | Reserved for discovery hints on uncollected entries. Books cannot define hints yet, so this currently has no effect. |
+| `enableDiscoveryHints` | `true` | Show discovery hints on uncollected Codex entries when defined by books |
 
 ### Reader Settings
 

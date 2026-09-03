@@ -84,6 +84,7 @@
   "rpg_lore.codex.tooltip.not_favorite": "No és un dels preferits",
   "rpg_lore.codex.tooltip.hidden": "???",
   "rpg_lore.codex.tooltip.discovery_hint": "Suggeriment: %s",
+  "rpg_lore.codex.tooltip.series": "Series: %s (%d)",
   "rpg_lore.codex.favorite.add": "Fes clic per afegir-los als preferits",
   "rpg_lore.codex.favorite.remove": "Fes clic per eliminar els preferits",
   "rpg_lore.codex.keybind.no_codex": "No portes cap còdex de tradició",

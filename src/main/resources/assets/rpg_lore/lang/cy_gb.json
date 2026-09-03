@@ -84,6 +84,7 @@
   "rpg_lore.codex.tooltip.not_favorite": "Ddim yn ffefryn",
   "rpg_lore.codex.tooltip.hidden": "???",
   "rpg_lore.codex.tooltip.discovery_hint": "Awgrym: %s",
+  "rpg_lore.codex.tooltip.series": "Series: %s (%d)",
   "rpg_lore.codex.favorite.add": "Cliciwch i ychwanegu at ffefrynnau",
   "rpg_lore.codex.favorite.remove": "Cliciwch i dynnu o ffefrynnau",
   "rpg_lore.codex.keybind.no_codex": "Nid ydych yn cario Cod Lorex",

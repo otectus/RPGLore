@@ -84,6 +84,7 @@
   "rpg_lore.codex.tooltip.not_favorite": "প্রিয় নয়",
   "rpg_lore.codex.tooltip.hidden": "???",
   "rpg_lore.codex.tooltip.discovery_hint": "ইঙ্গিত: %s",
+  "rpg_lore.codex.tooltip.series": "Series: %s (%d)",
   "rpg_lore.codex.favorite.add": "আপনার পছন্দসইগুলিতে যুক্ত করতে ক্লিক করুন",
   "rpg_lore.codex.favorite.remove": "ফেভারিট থেকে সরানোর জন্য ক্লিক করুন",
   "rpg_lore.codex.keybind.no_codex": "আপনি লোর কোডেক্স বহন করছেন না",

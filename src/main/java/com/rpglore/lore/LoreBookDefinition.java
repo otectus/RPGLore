@@ -1,6 +1,9 @@
 package com.rpglore.lore;
 
+import com.rpglore.lore.acquisition.AcquisitionRule;
+
 import javax.annotation.Nullable;
+import java.util.ArrayList;
 import java.util.List;
 
 public record LoreBookDefinition(
@@ -9,7 +12,7 @@ public record LoreBookDefinition(
         String author,
         int generation,
         double weight,
-        DropCondition dropCondition,
+        List<AcquisitionRule> acquisition,
         List<String> pages,
         @Nullable String titleColor,
         @Nullable String authorColor,
@@ -18,5 +21,31 @@ public record LoreBookDefinition(
         boolean hideGeneration,
         boolean showGlint,
         @Nullable String category,
-        boolean codexExclude
-) {}
+        boolean codexExclude,
+        List<String> tags,
+        @Nullable String discoveryHint,
+        @Nullable String series,
+        int seriesOrder,
+        int formatVersion
+) {
+
+    public List<AcquisitionRule.EntityDropAcquisition> entityDropRules() {
+        return rulesOf(AcquisitionRule.EntityDropAcquisition.class);
+    }
+
+    public List<AcquisitionRule.LootTableAcquisition> lootTableRules() {
+        return rulesOf(AcquisitionRule.LootTableAcquisition.class);
+    }
+
+    public List<AcquisitionRule.AdvancementAcquisition> advancementRules() {
+        return rulesOf(AcquisitionRule.AdvancementAcquisition.class);
+    }
+
+    private <T extends AcquisitionRule> List<T> rulesOf(Class<T> type) {
+        List<T> out = new ArrayList<>();
+        for (AcquisitionRule rule : acquisition) {
+            if (type.isInstance(rule)) out.add(type.cast(rule));
+        }
+        return out;
+    }
+}

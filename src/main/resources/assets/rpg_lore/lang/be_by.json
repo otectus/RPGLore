@@ -84,6 +84,7 @@
   "rpg_lore.codex.tooltip.not_favorite": "Не фаварыт",
   "rpg_lore.codex.tooltip.hidden": "???",
   "rpg_lore.codex.tooltip.discovery_hint": "Падказка: %s",
+  "rpg_lore.codex.tooltip.series": "Series: %s (%d)",
   "rpg_lore.codex.favorite.add": "Націсніце, каб дадаць у абранае",
   "rpg_lore.codex.favorite.remove": "Націсніце, каб выдаліць з абраных",
   "rpg_lore.codex.keybind.no_codex": "You are not carrying a Кодэкс паданняў",

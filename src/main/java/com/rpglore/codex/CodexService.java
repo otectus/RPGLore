@@ -311,6 +311,7 @@ public final class CodexService {
     private List<CodexCatalogEntry> buildCatalogFor(ServerPlayer player) {
         UUID uuid = player.getUUID();
         boolean reveal = ServerConfig.CODEX_REVEAL_UNCOLLECTED_NAMES.get();
+        boolean hints = ServerConfig.CODEX_ENABLE_DISCOVERY_HINTS.get();
 
         // Sorted for a stable wire order across syncs
         Set<String> eligibleIds = new TreeSet<>(LoreBookRegistry.getCodexEligibleIds());
@@ -321,10 +322,11 @@ public final class CodexService {
             if (optDef.isEmpty()) continue;
             LoreBookDefinition def = optDef.get();
 
+            String hint = hints ? def.discoveryHint() : null;
             if (!reveal && !codexData.hasBook(uuid, id)) {
-                catalog.add(CodexCatalogEntry.redacted(id, def.category(), null, 0));
+                catalog.add(CodexCatalogEntry.redacted(id, def.category(), hint, def.seriesOrder()));
             } else {
-                catalog.add(CodexCatalogEntry.of(def));
+                catalog.add(CodexCatalogEntry.of(def, hint));
             }
         }
         return catalog;

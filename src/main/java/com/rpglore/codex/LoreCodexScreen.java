@@ -577,6 +577,7 @@ public class LoreCodexScreen extends Screen {
                         .withStyle(ChatFormatting.GRAY));
             }
             addCategoryLine(lines, entry);
+            addSeriesLine(lines, entry);
             lines.add(Component.translatable(entry.read()
                     ? "rpg_lore.codex.tooltip.read" : "rpg_lore.codex.tooltip.unread")
                     .withStyle(ChatFormatting.GRAY));
@@ -594,7 +595,6 @@ public class LoreCodexScreen extends Screen {
                         .withStyle(ChatFormatting.GRAY));
             }
             addCategoryLine(lines, entry);
-            // discoveryHint is always null until lore packs can define one
             if (entry.discoveryHint() != null) {
                 lines.add(Component.translatable("rpg_lore.codex.tooltip.discovery_hint", entry.discoveryHint())
                         .withStyle(ChatFormatting.DARK_GRAY));
@@ -607,6 +607,14 @@ public class LoreCodexScreen extends Screen {
         String category = entry.category();
         if (category != null && !category.isBlank()) {
             lines.add(Component.translatable("rpg_lore.codex.tooltip.category", category)
+                    .withStyle(ChatFormatting.GRAY));
+        }
+    }
+
+    private void addSeriesLine(List<Component> lines, CodexEntryView entry) {
+        String series = entry.series();
+        if (series != null && !series.isBlank()) {
+            lines.add(Component.translatable("rpg_lore.codex.tooltip.series", series, entry.seriesOrder())
                     .withStyle(ChatFormatting.GRAY));
         }
     }

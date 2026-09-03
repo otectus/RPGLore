@@ -31,7 +31,7 @@ public final class BooksConfigLoader {
     }
 
     /** Bump when the generated README text changes so existing installs pick it up. */
-    static final int README_VERSION = 2;
+    static final int README_VERSION = 3;
 
     private static final String README_HEADER = "# rpg_lore generated docs v" + README_VERSION;
     private static final Pattern README_HEADER_PATTERN =
@@ -131,8 +131,10 @@ public final class BooksConfigLoader {
                 --- Required Fields ---
 
                 title                (string)  Book title displayed in-game and on the title page. Required.
+                                               Titles longer than 48 characters produce a warning.
                 pages                (array)   List of page content. Each page is either a plain string (auto-wrapped)
                                                or a JSON text component for formatting and interaction. Required.
+                                               Capped at 200 pages; extra pages are truncated.
                                                See docs/INTERACTIVE_TEXT.md for hover events and click features.
 
                 --- Optional Content Fields ---
@@ -197,6 +199,27 @@ public final class BooksConfigLoader {
                 weather              (string)  "ANY", "CLEAR_ONLY", "RAIN_ONLY", or "THUNDER_ONLY". Default: "ANY"
 
                 All array fields default to matching everything if omitted.
+
+                --- Acquisition (optional "acquisition" array, additive) ---
+
+                Each entry is an object with a required "type". drop_conditions above still works and
+                becomes one entity_drop rule; a book with neither gets a default entity_drop rule.
+
+                type "entity_drop"   Same keys as drop_conditions, plus "chance" as an alias of base_chance
+                                     (if both are given, chance wins and a warning is logged).
+                type "loot_table"    loot_tables (array of loot table IDs, required, e.g. ["minecraft:chests/simple_dungeon"])
+                                     chance (0.0 to 1.0, default 1.0), weight (> 0, default 1.0).
+                                     Entity tables are ignored here; mob drops stay with entity_drop.
+                type "advancement"   advancements (array of advancement IDs, required, e.g. ["minecraft:story/root"])
+                                     delivery: "codex" (default) adds the book to the Codex,
+                                     "inventory" gives a physical book once.
+
+                --- Codex Metadata Fields (all optional, top level) ---
+
+                tags                 (array)   Searchable keywords, e.g. ["ruins", "war"]. Blank entries are dropped.
+                discovery_hint       (string)  Hint shown on uncollected Codex entries (server config can disable hints).
+                series               (string)  Series name shown in the Codex tooltip.
+                series_order         (int)     Position within the series; negative values clamp to 0. Default: 0
 
                 --- General Notes ---
 

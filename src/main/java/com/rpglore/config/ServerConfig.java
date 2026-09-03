@@ -13,6 +13,11 @@ public class ServerConfig {
     public static final ForgeConfigSpec.BooleanValue LOOT_SCALING;
     public static final ForgeConfigSpec.BooleanValue ALLOW_NON_PLAYER_KILLS;
 
+    // --- Acquisition settings ---
+    public static final ForgeConfigSpec.BooleanValue ENABLE_ENTITY_DROPS;
+    public static final ForgeConfigSpec.BooleanValue ENABLE_LOOT_TABLES;
+    public static final ForgeConfigSpec.BooleanValue ENABLE_ADVANCEMENTS;
+
     // --- Codex settings ---
     public static final ForgeConfigSpec.BooleanValue CODEX_ENABLED;
     public static final ForgeConfigSpec.BooleanValue CODEX_SOULBOUND;
@@ -54,6 +59,24 @@ public class ServerConfig {
         ALLOW_NON_PLAYER_KILLS = builder
                 .comment("If true, non-player kills (e.g. wolves, golems) can also trigger book drops")
                 .define("allowNonPlayerKills", false);
+
+        builder.pop();
+
+        builder.comment("Which acquisition sources are active").push("acquisition");
+
+        ENABLE_ENTITY_DROPS = builder
+                .comment("If true, books with an entity_drop rule can drop from mob kills")
+                .define("enableEntityDrops", true);
+
+        ENABLE_LOOT_TABLES = builder
+                .comment("If true, books with a loot_table rule are injected into the named loot tables",
+                        "(chests, fishing, gameplay tables). Entity tables are never touched here.")
+                .define("enableLootTables", true);
+
+        ENABLE_ADVANCEMENTS = builder
+                .comment("If true, books with an advancement rule are granted when a player earns",
+                        "one of the listed advancements")
+                .define("enableAdvancements", true);
 
         builder.pop();
 

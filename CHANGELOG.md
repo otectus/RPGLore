@@ -5,17 +5,23 @@
 ### New Features
 - **Pack validation command** -- `/rpglore validate` and `/rpglore validate <book_id>` (OP level 2) re-check definitions without reloading; messages logged to server, with summary in chat (bulk) or all messages in chat (single-book)
 - **Rich validation diagnostics** -- lore book parsing now produces structured validation reports with severity levels, JSON path, source position, and helpful suggestions; strict JSON first, lenient-mode fallback with warning
-- **Codex search box** -- search across book titles, authors, and categories with live filtering; press Ctrl+F to focus the search box; hidden uncollected names cannot be matched by queries
+- **Codex search box** -- search across book titles, authors, categories, and tags with live filtering; press Ctrl+F to focus the search box; hidden uncollected names cannot be matched by queries
 - **Category and filter cycles** -- browse by All Categories, per-category, or Uncategorized; show All, Collected, Unread, Favorites, or Missing books
 - **Sorting options** -- sort by Default (unread first), Title, Category, or Recently found
 - **Unread markers and favorites** -- collected books show an unread dot (toggleable with `codex_display.showUnreadMarkers`) and clickable star icon; favorite status persists server-side
 - **Spare copy display** -- duplicates shown as `×n` with a copy icon (greyed when none remain); replaced the old `C(n)` notation
 - **Entry tooltips and keyboard navigation** -- hover to see collected book details and category; press Esc to close/exit search, arrow keys to page or select rows, Enter to open selected book
 - **"Open Lore Codex" keybind** -- new unbound-by-default key opens the Codex browser from inventory or Curios slot (server verifies the player carries the item)
+- **Loot-table book acquisition** -- new `loot_table` acquisition rule type injects books into named loot tables (chests, fishing, gameplay) with configurable chance and weight per rule; at most one book per table generation, selected by weight among candidates that passed their chance roll
+- **Advancement-driven book delivery** -- new `advancement` acquisition rule type grants books when players earn advancements, with selectable delivery: add to Codex (permanent collection entry) or drop a physical copy in inventory/at feet (once per advancement grant)
+- **Book discovery metadata** -- new `tags` (searchable keywords, blank entries dropped), `discovery_hint` (shown on uncollected entries when enabled), `series` (displayed in entry tooltip), and `series_order` (position within series) fields for organizing collections
+- **Public API and event** -- added `LoreAcquisitionService.collect()` for mods to grant books with source attribution, and `LoreCollectedEvent` on the Forge event bus (fired server-side on first-time collection only) with player, book ID, and source
 
 ### Improvements
 - **/rpglore reload now reports changes** -- displays loaded/added/changed/removed/warnings/errors counts; reports how many definitions were skipped due to parse errors
 - **Load resilience** -- if the books directory becomes unreadable, the previous catalog remains active instead of being replaced with an empty one
+- **Acquisition rule toggles** -- three new server config options (`enableEntityDrops`, `enableLootTables`, `enableAdvancements`) gate each acquisition method independently
+- **Additive book acquisition** -- books now declare an `acquisition` array of rule objects (entity_drop, loot_table, advancement) that stack additively; legacy `drop_conditions` still works unchanged and becomes one entity_drop rule; a book with neither still gets a default entity_drop rule for backward compatibility
 - **Format version validation** -- added `format_version` field validation; books must omit it or set it to 1; any other value produces an error
 - **Codex read state, favorites, and discovery timestamps** -- collected books now track which you have opened, can be marked as favorites, and record discovery time. Save format version 2 automatically migrates from 2.1.x with all existing books marked read (so veterans are not flooded with "new" books). Removing a book clears all its state.
 - **Reduced Codex network traffic** -- network protocol version 3 sends the Codex catalog when the server's catalog revision changes or when a newly collected book switches from hidden to revealed; otherwise only the compact per-player state is sent.

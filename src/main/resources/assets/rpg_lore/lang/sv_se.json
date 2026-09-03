@@ -84,6 +84,7 @@
   "rpg_lore.codex.tooltip.not_favorite": "Not a favorite",
   "rpg_lore.codex.tooltip.hidden": "???",
   "rpg_lore.codex.tooltip.discovery_hint": "Hint: %s",
+  "rpg_lore.codex.tooltip.series": "Series: %s (%d)",
   "rpg_lore.codex.favorite.add": "Click to add to favorites",
   "rpg_lore.codex.favorite.remove": "Click to remove from favorites",
   "rpg_lore.codex.keybind.no_codex": "You are not carrying a Lore Codex",

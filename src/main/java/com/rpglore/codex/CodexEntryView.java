@@ -66,6 +66,15 @@ public record CodexEntryView(
     }
 
     @Nullable
+    public String series() {
+        return entry.series();
+    }
+
+    public int seriesOrder() {
+        return entry.seriesOrder();
+    }
+
+    @Nullable
     public String discoveryHint() {
         return entry.discoveryHint();
     }

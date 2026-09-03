@@ -14,9 +14,8 @@ import java.util.List;
  * <p>Uncollected books are sent in {@link #redacted} form when the server config
  * hides uncollected names, so a client cannot read titles it has not earned.
  *
- * <p>{@code tags}, {@code discoveryHint}, {@code series} and {@code seriesOrder} are
- * always empty/null/0 for now; the wire shape is fixed here so a later phase can
- * populate them without another protocol bump.
+ * <p>{@code discoveryHint} is only ever populated when the server config enables
+ * discovery hints; the caller is responsible for that gate.
  */
 public record CodexCatalogEntry(
         String id,
@@ -32,22 +31,25 @@ public record CodexCatalogEntry(
 ) {
 
     /** Full form: everything the client may show about a book. */
-    public static CodexCatalogEntry of(LoreBookDefinition def) {
+    public static CodexCatalogEntry of(LoreBookDefinition def, @Nullable String discoveryHint) {
         return new CodexCatalogEntry(
                 def.id(),
                 def.title(),
                 def.author(),
                 def.category(),
                 def.titleColor(),
-                List.of(),
-                null,
-                null,
-                0,
+                List.copyOf(def.tags()),
+                discoveryHint,
+                def.series(),
+                def.seriesOrder(),
                 false
         );
     }
 
-    /** Redacted form: the client learns a book exists, but not its title or author. */
+    /**
+     * Redacted form: the client learns a book exists, and may get its discovery hint and
+     * position in a series, but not its title, author, tags or series name.
+     */
     public static CodexCatalogEntry redacted(String id, @Nullable String category,
                                              @Nullable String discoveryHint, int seriesOrder) {
         return new CodexCatalogEntry(id, null, null, category, null,

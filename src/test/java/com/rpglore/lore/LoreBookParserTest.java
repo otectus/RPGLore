@@ -1,6 +1,7 @@
 package com.rpglore.lore;
 
 import com.rpglore.config.BooksConfigLoader;
+import com.rpglore.lore.acquisition.AcquisitionRule;
 import org.junit.jupiter.api.Test;
 
 import java.util.List;
@@ -22,6 +23,10 @@ class LoreBookParserTest {
         LoreValidationReport report = parse(json);
         assertTrue(report.isLoaded(), () -> "expected the book to load, messages: " + formatAll(report));
         return report.definition();
+    }
+
+    private static DropCondition onlyDropCondition(LoreBookDefinition def) {
+        return def.entityDropRules().get(0).condition();
     }
 
     private static String formatAll(LoreValidationReport report) {
@@ -57,7 +62,8 @@ class LoreBookParserTest {
         assertTrue(def.showGlint());
         assertFalse(def.codexExclude());
         assertEquals(1, def.pages().size());
-        assertEquals(DropCondition.defaultCondition(), def.dropCondition());
+        assertEquals(List.of(new AcquisitionRule.EntityDropAcquisition(DropCondition.defaultCondition())),
+                def.acquisition());
     }
 
     @Test
@@ -108,7 +114,7 @@ class LoreBookParserTest {
         assertEquals("History", def.category());
         assertTrue(def.codexExclude());
 
-        DropCondition drop = def.dropCondition();
+        DropCondition drop = def.entityDropRules().get(0).condition();
         assertEquals(List.of(new net.minecraft.resources.ResourceLocation("minecraft:zombie")), drop.mobTypes());
         assertEquals(List.of("minecraft:undead"), drop.mobTags());
         assertEquals(Integer.valueOf(-10), drop.minY());
@@ -362,8 +368,8 @@ class LoreBookParserTest {
                 """);
 
         assertTrue(report.isLoaded());
-        assertEquals(Integer.valueOf(10), report.definition().dropCondition().minY());
-        assertEquals(Integer.valueOf(80), report.definition().dropCondition().maxY());
+        assertEquals(Integer.valueOf(10), onlyDropCondition(report.definition()).minY());
+        assertEquals(Integer.valueOf(80), onlyDropCondition(report.definition()).maxY());
         assertTrue(anyMessageContains(report, LoreValidationMessage.Severity.WARNING, "swapping values"));
     }
 
@@ -378,7 +384,7 @@ class LoreBookParserTest {
                 """);
 
         assertTrue(report.isLoaded());
-        assertEquals(DropCondition.TimeFilter.ANY, report.definition().dropCondition().time());
+        assertEquals(DropCondition.TimeFilter.ANY, onlyDropCondition(report.definition()).time());
         assertTrue(anyMessageContains(report, LoreValidationMessage.Severity.WARNING, "Invalid time filter"));
     }
 
@@ -393,7 +399,7 @@ class LoreBookParserTest {
                 """);
 
         assertTrue(report.isLoaded());
-        assertEquals(DropCondition.WeatherFilter.ANY, report.definition().dropCondition().weather());
+        assertEquals(DropCondition.WeatherFilter.ANY, onlyDropCondition(report.definition()).weather());
         assertTrue(anyMessageContains(report, LoreValidationMessage.Severity.WARNING, "Invalid weather filter"));
     }
 

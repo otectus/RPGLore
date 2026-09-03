@@ -1,5 +1,6 @@
 package com.rpglore;
 
+import com.rpglore.acquisition.AdvancementAcquisitionHandler;
 import com.rpglore.codex.CodexEventHandler;
 import com.rpglore.codex.CodexService;
 import com.rpglore.codex.CodexTrackingData;
@@ -76,6 +77,9 @@ public class RpgLoreMod {
 
         // Allow LoreBookItem to be placed in vanilla lecterns
         MinecraftForge.EVENT_BUS.register(LoreBookLecternHandler.class);
+
+        // Advancement-driven book grants
+        MinecraftForge.EVENT_BUS.register(AdvancementAcquisitionHandler.class);
 
         // Client-only keybind; the handler class must never load on a dedicated server
         DistExecutor.unsafeRunWhenOn(Dist.CLIENT,
