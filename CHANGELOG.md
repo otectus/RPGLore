@@ -36,6 +36,7 @@
 - **Datapack-driven lore definitions** -- books can now ship in datapacks at `data/<namespace>/rpg_lore/books/<path>.json`, with default ID `<namespace>:<path>` (unless the JSON declares `id` explicitly). Config definitions override datapack definitions with the same ID, logged at INFO level.
 - **Two-layer reload workflow** -- `/reload` (server resource reload) rescans both datapack and config layers; `/rpglore reload` (config-only) rescans only the config folder and merges with the existing datapack layer. Both report change counts, including a new overrides count showing how many config definitions shadow datapack ones.
 - **Auto-regenerating config README** -- `config/rpg_lore/books/_README.txt` now regenerates automatically when the documentation version increments, ensuring users have current field documentation without manual intervention.
+- **Entity drop rule indexing** -- the registry builds an immutable index when definitions load with exact-mob buckets plus a generic bucket for tag/biome-only rules, cached Codex-eligible ids and categories, and loot-table and advancement lookups, so a mob death only evaluates rules that could apply instead of scanning every book; drop conditions are fully evaluated for each candidate
 
 ## [2.1.2] - 2026-09-03
 
