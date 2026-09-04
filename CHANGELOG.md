@@ -37,6 +37,16 @@
 - **New client config options** -- `codex_display.rememberSearch` (default true) and `codex_display.showUnreadMarkers` (default true)
 - **Two-layer reload workflow** -- `/reload` rescans both datapack and config; `/rpglore reload` rescans config only and merges with the existing datapack layer
 - **Auto-regenerating config README** -- `config/rpg_lore/books/_README.txt` regenerates when documentation version increments, keeping field docs current without user intervention
+- **Ribbon controls for Codex browsing** -- category, filter, and sort are now interactive red ribbon tabs that stick out from the book's top-right edge, each showing its role and current value (e.g. "Category: All", "Filter: Collected", "Sort: Default"); left-click cycles forward, Shift-click cycles backward, and all ribbons remain keyboard-accessible and remembered when returning from a book
+- **Codex header layout with 8 books per page** -- removing the button row reflowed the header so the book list now displays eight entries per page instead of seven
+- **Codex progress counter removed** -- the "x / y" collected-count display at the top of the parchment is removed; only the bottom page counter remains
+- **Spare-copy indicator simplified** -- the duplicate-count display on each row now shows only the copy icon with spare count in tooltip, removing the textual "×n" annotation
+- **Read action replaced with icon** -- the "Read" text link on each Codex entry is replaced by a small open-book icon with tooltip (new translation key `rpg_lore.codex.open_book`, added to all 60 locales)
+- **Title truncation with ellipsis** -- row titles receive approximately 30 px additional width, and any title that still does not fit is truncated with "..." instead of being clipped mid-glyph
+- **Textured duplicate-handling icon button** -- the spare/duplicate-prevention toggle is now a styled icon drawn from `textures/gui/codex.png` (stacked books with a green tick = store spares; single book with a red cross = leave duplicates on the ground) instead of a vanilla button, keeping the same tooltip and behavior
+- **Styled search field with magnifier glyph** -- the search input gained a magnifier glyph and thin underline so it reads as an input field on the parchment rather than a plain vanilla box
+- **Ribbon translation keys for all 60 locales** -- three new translation keys `rpg_lore.codex.ribbon.category`, `rpg_lore.codex.ribbon.filter`, `rpg_lore.codex.ribbon.sort` (format "Category: %s" etc.) are added to all 60 locale files (translated where the locale already translates the Codex controls, English elsewhere); very long category names are automatically trimmed with the full label preserved in the tooltip
+- **Curios slot icon texture** -- the "codex" slot's empty-slot icon is a 16x16 greyscale silhouette of the Lore Codex item, following Curios's convention for empty-slot icons; `data/rpg_lore/curios/slots/codex.json` points `icon` to `rpg_lore:slot/empty_codex_slot`.
 
 ## [2.1.2] - 2026-09-03
 

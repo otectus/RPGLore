@@ -8,16 +8,15 @@ import com.rpglore.network.ServerboundCodexSetDuplicateModePacket;
 import com.rpglore.network.ServerboundCodexSetFavoritePacket;
 import net.minecraft.ChatFormatting;
 import net.minecraft.client.gui.GuiGraphics;
-import net.minecraft.client.gui.components.Button;
-import net.minecraft.client.gui.components.CycleButton;
+import net.minecraft.client.gui.components.AbstractButton;
 import net.minecraft.client.gui.components.EditBox;
+import net.minecraft.client.gui.components.ImageButton;
 import net.minecraft.client.gui.components.Tooltip;
 import net.minecraft.client.gui.screens.Screen;
 import net.minecraft.network.chat.Component;
 import net.minecraft.network.chat.Style;
 import net.minecraft.network.chat.TextColor;
 import net.minecraft.resources.ResourceLocation;
-import net.minecraft.util.FormattedCharSequence;
 import net.minecraftforge.api.distmarker.Dist;
 import net.minecraftforge.api.distmarker.OnlyIn;
 import org.lwjgl.glfw.GLFW;
@@ -68,9 +67,11 @@ public class LoreCodexScreen extends Screen {
     private static final int IND_STAR_OUTLINE_U = 20;
     private static final int IND_COPY_U = 30;
     private static final int IND_COPY_GREY_U = 40;
+    private static final int IND_OPEN_U = 50;
+    private static final int IND_OPEN_HOVER_U = 60;
 
-    // Entry layout. Six rows is what fits below the search/filter header.
-    private static final int ENTRIES_PER_PAGE = 6;
+    // Entry layout. Eight rows is what fits below the search header.
+    private static final int ENTRIES_PER_PAGE = 8;
     private static final int ENTRY_HEIGHT = 14;
 
     // Row columns: unread dot, favorite star, then the title
@@ -78,13 +79,30 @@ public class LoreCodexScreen extends Screen {
     private static final int COL_STAR = 9;
     private static final int COL_TITLE = 19;
 
-    // Header rows relative to the top of the text area
+    // Header rows relative to the top of the text area. Eight entry rows end at
+    // textTop + 143; the page nav row sits at textTop + 147.
     private static final int ROW_TITLE = 0;
-    private static final int ROW_SEARCH = 11;
-    private static final int ROW_CYCLES = 24;
-    private static final int ROW_PROGRESS = 38;
-    private static final int ROW_SEPARATOR = 48;
-    private static final int ROW_ENTRIES = 52;
+    private static final int ROW_SEARCH = 12;
+    private static final int ROW_SEPARATOR = 27;
+    private static final int ROW_ENTRIES = 31;
+
+    // Duplicate-mode toggle icons (12x12, hover variant one row below)
+    private static final int TOGGLE_STORE_U = 190;
+    private static final int TOGGLE_GROUND_U = 203;
+    private static final int TOGGLE_V = 1;
+    private static final int TOGGLE_HOVER_DIFF = 12;
+    private static final int TOGGLE_SIZE = 12;
+
+    // Search magnifier glyph
+    private static final int MAG_U = 220;
+    private static final int MAG_V = 1;
+    private static final int MAG_SIZE = 8;
+
+    // Ribbon tabs sticking out of the book's right edge
+    private static final int RIBBON_TUCK = 3;
+    private static final int RIBBON_GAP = 2;
+    private static final int RIBBON_TOP = 9;
+    private static final int RIBBON_MAX_TEXT = 96;
 
     // Colors for parchment readability
     private static final int COLOR_TITLE = 0x3B2507;
@@ -104,12 +122,14 @@ public class LoreCodexScreen extends Screen {
     private CodexViewState viewState;
     private int totalPages = 1;
 
-    // Collected / total within the chosen category, independent of the active filter
-    private int progressCollected;
-    private int progressTotal;
-
-    private Button toggleButton;
+    private ImageButton toggleButton;
     private EditBox searchBox;
+
+    // Width of the search box, kept for the underline drawn in render()
+    private int searchWidth;
+
+    // Ribbons render under the book's right border, so they are not renderable widgets
+    private final List<RibbonButton<?>> ribbons = new ArrayList<>();
 
     // Computed layout positions (set in init)
     private int guiLeft, guiTop;
@@ -126,7 +146,6 @@ public class LoreCodexScreen extends Screen {
 
     // Built once instead of per frame — render() runs every tick
     private final Component styledTitle;
-    private final String readLabel;
     private final Component uncollectedTitle;
 
     public LoreCodexScreen(CodexScreenData data) {
@@ -140,7 +159,6 @@ public class LoreCodexScreen extends Screen {
         this.filteredEntries = new ArrayList<>(data.catalog);
         this.styledTitle = Component.translatable("rpg_lore.codex.title").withStyle(
                 Style.EMPTY.withBold(true).withColor(TextColor.fromRgb(COLOR_TITLE)));
-        this.readLabel = Component.translatable("rpg_lore.codex.read").getString();
         this.uncollectedTitle = Component.translatable("rpg_lore.codex.uncollected")
                 .withStyle(Style.EMPTY.withItalic(true).withColor(TextColor.fromRgb(COLOR_UNCOLLECTED)));
     }
@@ -163,16 +181,18 @@ public class LoreCodexScreen extends Screen {
     protected void init() {
         super.init();
 
+        ribbons.clear();
+
         guiLeft = (this.width - BOOK_WIDTH) / 2;
         guiTop = (this.height - BOOK_HEIGHT) / 2;
         textLeft = guiLeft + PARCHMENT_X + TEXT_PADDING;
         textTop = guiTop + PARCHMENT_Y + TEXT_PADDING;
 
-        int toggleSize = 12;
-        int searchWidth = data.allowDuplicatePrevention ? TEXT_WIDTH - toggleSize - 2 : TEXT_WIDTH;
+        // The magnifier glyph occupies the first 10px of the search row
+        searchWidth = (data.allowDuplicatePrevention ? TEXT_WIDTH - TOGGLE_SIZE - 2 : TEXT_WIDTH) - 10;
 
         // Search box: unbordered so it sits on the parchment instead of on a vanilla frame
-        searchBox = new EditBox(this.font, textLeft, textTop + ROW_SEARCH, searchWidth, 12,
+        searchBox = new EditBox(this.font, textLeft + 10, textTop + ROW_SEARCH, searchWidth, 12,
                 Component.translatable("rpg_lore.codex.search.hint"));
         searchBox.setBordered(false);
         searchBox.setMaxLength(64);
@@ -190,20 +210,18 @@ public class LoreCodexScreen extends Screen {
 
         // Toggle duplicate prevention button (small square, right of the search box)
         if (data.allowDuplicatePrevention) {
-            int toggleX = textLeft + TEXT_WIDTH - toggleSize;
-            toggleButton = Button.builder(getToggleLabel(), btn -> {
-                // Idempotent set: ask for the opposite of the mode we are showing
-                ModNetwork.sendToServer(
-                        new ServerboundCodexSetDuplicateModePacket(data.preventDuplicates));
-            }).bounds(toggleX, textTop + ROW_SEARCH, toggleSize, toggleSize)
-              .tooltip(Tooltip.create(duplicatesTooltip()))
-              .build();
+            int toggleX = textLeft + TEXT_WIDTH - TOGGLE_SIZE;
+            toggleButton = new ImageButton(toggleX, textTop + ROW_SEARCH, TOGGLE_SIZE, TOGGLE_SIZE,
+                    data.preventDuplicates ? TOGGLE_GROUND_U : TOGGLE_STORE_U, TOGGLE_V,
+                    TOGGLE_HOVER_DIFF, CODEX_TEXTURE, 256, 256,
+                    // Idempotent set: ask for the opposite of the mode we are showing
+                    btn -> ModNetwork.sendToServer(
+                            new ServerboundCodexSetDuplicateModePacket(data.preventDuplicates)));
+            toggleButton.setTooltip(Tooltip.create(duplicatesTooltip()));
             addRenderableWidget(toggleButton);
         }
 
-        addRenderableWidget(buildCategoryButton(textLeft, textTop + ROW_CYCLES, 44));
-        addRenderableWidget(buildFilterButton(textLeft + 45, textTop + ROW_CYCLES, 40));
-        addRenderableWidget(buildSortButton(textLeft + 86, textTop + ROW_CYCLES, 34));
+        buildRibbons();
 
         // Page nav button positions (drawn manually as texture sprites, hit-tested in mouseClicked)
         int navY = guiTop + PARCHMENT_Y + PARCHMENT_HEIGHT - BTN_SPRITE_H - 2;
@@ -218,62 +236,67 @@ public class LoreCodexScreen extends Screen {
 
     // --- Header widgets ---
 
-    private CycleButton<String> buildCategoryButton(int x, int y, int width) {
-        List<String> values = new ArrayList<>();
-        values.add(CATEGORY_ALL);
-        values.addAll(CodexEntryFilter.categoriesOf(data.catalog));
+    /**
+     * Builds the three ribbon tabs. Their root is tucked under the book's right
+     * border, so they are registered with addWidget and rendered by hand before
+     * the book blit rather than by super.render().
+     */
+    private void buildRibbons() {
+        int x = guiLeft + BOOK_WIDTH - RIBBON_TUCK;
+        // Whatever the ribbon can spend on text without running off the screen edge
+        int maxTextWidth = Math.max(20, Math.min(RIBBON_MAX_TEXT, this.width - x - 4 - 3 - 3 - 6 - 2));
+
+        List<String> categories = new ArrayList<>();
+        categories.add(CATEGORY_ALL);
+        categories.addAll(CodexEntryFilter.categoriesOf(data.catalog));
         if (CodexEntryFilter.hasUncategorized(data.catalog)) {
-            values.add(CodexViewState.UNCATEGORIZED);
+            categories.add(CodexViewState.UNCATEGORIZED);
         }
 
-        String initial = viewState.category() == null ? CATEGORY_ALL : viewState.category();
-        if (!values.contains(initial)) {
+        String initialCategory = viewState.category() == null ? CATEGORY_ALL : viewState.category();
+        if (!categories.contains(initialCategory)) {
             // The category vanished from the catalog; fall back to showing everything
-            initial = CATEGORY_ALL;
+            initialCategory = CATEGORY_ALL;
             viewState = viewState.withCategory(null);
         }
 
-        CycleButton<String> button = CycleButton.<String>builder(LoreCodexScreen::categoryLabel)
-                .withValues(values)
-                .withInitialValue(initial)
-                .displayOnlyValue()
-                .create(x, y, width, 12, Component.empty(), (btn, value) -> {
+        addRibbon(new RibbonButton<String>(this.font, x, ribbonY(0), maxTextWidth, categories, initialCategory,
+                "rpg_lore.codex.ribbon.category", LoreCodexScreen::ribbonCategoryLabel,
+                (btn, value) -> {
                     viewState = viewState.withCategory(CATEGORY_ALL.equals(value) ? null : value);
-                    btn.setTooltip(Tooltip.create(categoryLabel(value)));
                     applyFilter();
-                });
-        button.setTooltip(Tooltip.create(categoryLabel(initial)));
-        return button;
+                }));
+
+        addRibbon(new RibbonButton<CodexViewState.Filter>(this.font, x, ribbonY(1), maxTextWidth,
+                List.of(CodexViewState.Filter.values()), viewState.filter(),
+                "rpg_lore.codex.ribbon.filter", LoreCodexScreen::filterLabel,
+                (btn, value) -> {
+                    viewState = viewState.withFilter(value);
+                    applyFilter();
+                }));
+
+        addRibbon(new RibbonButton<CodexViewState.Sort>(this.font, x, ribbonY(2), maxTextWidth,
+                List.of(CodexViewState.Sort.values()), viewState.sort(),
+                "rpg_lore.codex.ribbon.sort", LoreCodexScreen::sortLabel,
+                (btn, value) -> {
+                    viewState = viewState.withSort(value);
+                    applyFilter();
+                }));
     }
 
-    private CycleButton<CodexViewState.Filter> buildFilterButton(int x, int y, int width) {
-        CycleButton<CodexViewState.Filter> button =
-                CycleButton.<CodexViewState.Filter>builder(LoreCodexScreen::filterLabel)
-                        .withValues(CodexViewState.Filter.values())
-                        .withInitialValue(viewState.filter())
-                        .displayOnlyValue()
-                        .create(x, y, width, 12, Component.empty(), (btn, value) -> {
-                            viewState = viewState.withFilter(value);
-                            btn.setTooltip(Tooltip.create(filterLabel(value)));
-                            applyFilter();
-                        });
-        button.setTooltip(Tooltip.create(filterLabel(viewState.filter())));
-        return button;
+    private int ribbonY(int slot) {
+        return guiTop + RIBBON_TOP + slot * (RibbonButton.HEIGHT + RIBBON_GAP);
     }
 
-    private CycleButton<CodexViewState.Sort> buildSortButton(int x, int y, int width) {
-        CycleButton<CodexViewState.Sort> button =
-                CycleButton.<CodexViewState.Sort>builder(LoreCodexScreen::sortLabel)
-                        .withValues(CodexViewState.Sort.values())
-                        .withInitialValue(viewState.sort())
-                        .displayOnlyValue()
-                        .create(x, y, width, 12, Component.empty(), (btn, value) -> {
-                            viewState = viewState.withSort(value);
-                            btn.setTooltip(Tooltip.create(sortLabel(value)));
-                            applyFilter();
-                        });
-        button.setTooltip(Tooltip.create(sortLabel(viewState.sort())));
-        return button;
+    private void addRibbon(RibbonButton<?> ribbon) {
+        addWidget(ribbon);
+        ribbons.add(ribbon);
+    }
+
+    /** The ribbon spells out the role itself, so "all" reads as a plain value here. */
+    private static Component ribbonCategoryLabel(String value) {
+        if (CATEGORY_ALL.equals(value)) return Component.translatable("rpg_lore.codex.filter.all");
+        return categoryLabel(value);
     }
 
     private static Component categoryLabel(String value) {
@@ -312,18 +335,6 @@ public class LoreCodexScreen extends Screen {
         filteredEntries = CodexEntryFilter.apply(data.catalog, viewState);
         totalPages = Math.max(1, (int) Math.ceil((double) filteredEntries.size() / ENTRIES_PER_PAGE));
 
-        // Progress counts the chosen category only, and deliberately ignores the
-        // filter: "8 / 14" must mean 8 of the 14 books in History, not 8 of 8 unread.
-        progressCollected = 0;
-        progressTotal = 0;
-        List<CodexEntryView> inCategory = CodexEntryFilter.apply(data.catalog,
-                new CodexViewState("", viewState.category(), CodexViewState.Filter.ALL,
-                        CodexViewState.Sort.DEFAULT, 0, null));
-        for (CodexEntryView entry : inCategory) {
-            progressTotal++;
-            if (entry.collected()) progressCollected++;
-        }
-
         // Keep the keyboard selection visible when the list is rebuilt under it
         String selectedId = viewState.selectedId();
         int page = Math.min(Math.max(viewState.page(), 0), totalPages - 1);
@@ -345,35 +356,31 @@ public class LoreCodexScreen extends Screen {
         return -1;
     }
 
-    private Component getToggleLabel() {
-        return data.preventDuplicates
-                ? Component.literal("✖").withStyle(ChatFormatting.DARK_RED)
-                : Component.literal("✔").withStyle(ChatFormatting.DARK_GREEN);
-    }
-
     // --- Rendering ---
 
     @Override
     public void render(GuiGraphics graphics, int mouseX, int mouseY, float partialTick) {
         this.renderBackground(graphics);
 
+        // Ribbons first: the book blit then covers their tucked-in root
+        for (RibbonButton<?> ribbon : ribbons) {
+            ribbon.render(graphics, mouseX, mouseY, partialTick);
+        }
+
         // Draw the codex book texture
         graphics.blit(CODEX_TEXTURE, guiLeft, guiTop, BOOK_U, BOOK_V, BOOK_WIDTH, BOOK_HEIGHT);
 
         int parchCenterX = guiLeft + PARCHMENT_X + PARCHMENT_WIDTH / 2;
 
+        // Search row furniture: magnifier glyph and a hairline underline
+        graphics.blit(CODEX_TEXTURE, textLeft, textTop + ROW_SEARCH + 2, MAG_U, MAG_V, MAG_SIZE, MAG_SIZE);
+        graphics.fill(textLeft, textTop + ROW_SEARCH + 11,
+                textLeft + 10 + searchWidth, textTop + ROW_SEARCH + 12, 0x50000000);
+
         // Title
         int titleWidth = this.font.width(styledTitle);
         graphics.drawString(this.font, styledTitle, parchCenterX - titleWidth / 2,
                 textTop + ROW_TITLE, COLOR_TITLE, false);
-
-        // Collection counter for the chosen category
-        Component counter = Component.translatable("rpg_lore.codex.progress",
-                        String.valueOf(progressCollected), String.valueOf(progressTotal))
-                .withStyle(Style.EMPTY.withColor(TextColor.fromRgb(COLOR_SUBTLE)));
-        int counterWidth = this.font.width(counter);
-        graphics.drawString(this.font, counter, parchCenterX - counterWidth / 2,
-                textTop + ROW_PROGRESS, COLOR_SUBTLE, false);
 
         // Separator line
         int sepY = textTop + ROW_SEPARATOR;
@@ -404,7 +411,7 @@ public class LoreCodexScreen extends Screen {
         // Page navigation (drawn from texture sprites)
         renderPageNav(graphics, mouseX, mouseY);
 
-        // Render vanilla widgets (search, cycles, toggle) on top
+        // Render vanilla widgets (search, toggle) on top
         super.render(graphics, mouseX, mouseY, partialTick);
 
         renderHoverTooltip(graphics, mouseX, mouseY);
@@ -432,66 +439,64 @@ public class LoreCodexScreen extends Screen {
         }
 
         int titleX = x + COL_TITLE;
-        int maxTitleWidth = TEXT_WIDTH - COL_TITLE;
+        // Right-hand icon column: open-book at the far edge, copy icon 3px to its left
+        int iconsLeft = x + TEXT_WIDTH;
 
         if (entry.collected()) {
-            // Read label, right-aligned
-            int readW = this.font.width(readLabel);
-            int readX = x + TEXT_WIDTH - readW;
-            boolean hoverRead = mouseX >= readX && mouseX < readX + readW
+            // Open-book icon, right-aligned
+            int openX = x + TEXT_WIDTH - IND_SIZE;
+            boolean hoverOpen = mouseX >= openX && mouseX < openX + IND_SIZE
                     && mouseY >= y && mouseY < y + ENTRY_HEIGHT;
-            graphics.drawString(this.font, readLabel, readX, y + 1,
-                    hoverRead ? COLOR_LINK_HOVER : COLOR_LINK, false);
-            entryRegions.add(new EntryRegion(readX, y, readX + readW, y + ENTRY_HEIGHT,
-                    entry.id(), EntryAction.READ));
-            maxTitleWidth -= readW + 4;
+            blitIndicator(graphics, hoverOpen ? IND_OPEN_HOVER_U : IND_OPEN_U, openX, indicatorY);
+            entryRegions.add(new EntryRegion(openX, y, openX + IND_SIZE, y + ENTRY_HEIGHT,
+                    entry.id(), EntryAction.OPEN));
+            iconsLeft = openX;
 
-            // Spare copies: icon plus xN, greyed when the bank is empty
+            // Spare copies: icon only, greyed when the bank is empty. The count
+            // lives in the hover tooltip.
             if (data.allowCopy) {
-                int spares = entry.spares();
-                boolean hasSpares = spares > 0;
-                Component sparesText = Component.translatable("rpg_lore.codex.spares.short",
-                        String.valueOf(spares));
-                int sparesW = this.font.width(sparesText);
-                int copyW = IND_SIZE + 1 + sparesW;
-                int copyX = readX - 4 - copyW;
+                boolean hasSpares = entry.spares() > 0;
+                int copyX = copyIconX(x);
                 blitIndicator(graphics, hasSpares ? IND_COPY_U : IND_COPY_GREY_U, copyX, indicatorY);
-                graphics.drawString(this.font, sparesText, copyX + IND_SIZE + 1, y + 1,
-                        hasSpares ? COLOR_COPY : COLOR_UNCOLLECTED, false);
-                entryRegions.add(new EntryRegion(copyX, y, copyX + copyW, y + ENTRY_HEIGHT,
+                entryRegions.add(new EntryRegion(copyX, y, copyX + IND_SIZE, y + ENTRY_HEIGHT,
                         entry.id(), hasSpares ? EntryAction.COPY : EntryAction.NONE));
-                maxTitleWidth -= copyW + 4;
+                iconsLeft = copyX;
             }
         }
 
-        // Book title (truncated to fit; the row tooltip carries the full text)
-        Component titleComp;
-        if (entry.collected()) {
-            int color = COLOR_TEXT;
-            if (entry.titleColor() != null) {
-                try {
-                    color = Integer.parseInt(entry.titleColor(), 16);
-                } catch (NumberFormatException ignored) {}
+        int maxTitleWidth = iconsLeft - 4 - titleX;
+
+        // Book title (ellipsised to fit; the row tooltip carries the full text)
+        if (entry.collected() || (data.revealUncollectedNames && !entry.title().isEmpty())) {
+            int color = COLOR_UNCOLLECTED;
+            if (entry.collected()) {
+                color = COLOR_TEXT;
+                if (entry.titleColor() != null) {
+                    try {
+                        color = Integer.parseInt(entry.titleColor(), 16);
+                    } catch (NumberFormatException ignored) {}
+                }
             }
-            titleComp = Component.literal(entry.title())
-                    .withStyle(Style.EMPTY.withColor(TextColor.fromRgb(color)));
-        } else if (data.revealUncollectedNames && !entry.title().isEmpty()) {
-            titleComp = Component.literal(entry.title())
-                    .withStyle(Style.EMPTY.withColor(TextColor.fromRgb(COLOR_UNCOLLECTED)));
+            String titleText = entry.title();
+            if (this.font.width(titleText) > maxTitleWidth) {
+                titleText = this.font.plainSubstrByWidth(titleText,
+                        maxTitleWidth - this.font.width("...")).stripTrailing() + "...";
+            }
+            graphics.drawString(this.font, titleText, titleX, y + 1, color, false);
+
+            // Clickable title region for collected books
+            if (entry.collected()) {
+                entryRegions.add(new EntryRegion(titleX, y, titleX + this.font.width(titleText),
+                        y + ENTRY_HEIGHT, entry.id(), EntryAction.READ));
+            }
         } else {
-            titleComp = uncollectedTitle;
+            graphics.drawString(this.font, uncollectedTitle, titleX, y + 1, COLOR_UNCOLLECTED, false);
         }
+    }
 
-        FormattedCharSequence trimmed = this.font.split(titleComp, maxTitleWidth).stream()
-                .findFirst().orElse(FormattedCharSequence.EMPTY);
-        graphics.drawString(this.font, trimmed, titleX, y + 1, COLOR_TEXT, false);
-
-        // Clickable title region for collected books
-        if (entry.collected()) {
-            int renderedWidth = Math.min(this.font.width(titleComp), maxTitleWidth);
-            entryRegions.add(new EntryRegion(titleX, y, titleX + renderedWidth, y + ENTRY_HEIGHT,
-                    entry.id(), EntryAction.READ));
-        }
+    /** Left edge of the copy icon column, three pixels left of the open-book icon. */
+    private int copyIconX(int x) {
+        return x + TEXT_WIDTH - IND_SIZE - 3 - IND_SIZE;
     }
 
     private void blitIndicator(GuiGraphics graphics, int u, int x, int y) {
@@ -551,6 +556,11 @@ public class LoreCodexScreen extends Screen {
                 graphics.renderTooltip(this.font, sparesTooltip(entry), mouseX, mouseY);
                 return;
             }
+            if (region.action == EntryAction.OPEN) {
+                graphics.renderTooltip(this.font,
+                        Component.translatable("rpg_lore.codex.open_book"), mouseX, mouseY);
+                return;
+            }
         }
 
         for (RowLayout row : rowLayouts) {
@@ -565,7 +575,7 @@ public class LoreCodexScreen extends Screen {
     /** A greyed spare indicator has action NONE but still explains itself on hover. */
     private boolean isSpareRegion(EntryRegion region, CodexEntryView entry) {
         return region.action == EntryAction.NONE && data.allowCopy && entry.collected()
-                && region.x2 - region.x1 > IND_SIZE;
+                && region.x1 == copyIconX(textLeft);
     }
 
     private List<Component> entryTooltip(CodexEntryView entry) {
@@ -659,7 +669,7 @@ public class LoreCodexScreen extends Screen {
             for (EntryRegion region : entryRegions) {
                 if (!region.contains((int) mouseX, (int) mouseY)) continue;
                 switch (region.action) {
-                    case READ -> {
+                    case READ, OPEN -> {
                         openBook(region.bookId);
                         return true;
                     }
@@ -704,6 +714,14 @@ public class LoreCodexScreen extends Screen {
                 return true;
             }
             this.onClose();
+            return true;
+        }
+
+        // A focused ribbon must get Enter/Space itself, ahead of "open the selected book"
+        if (this.getFocused() instanceof AbstractButton
+                && (keyCode == GLFW.GLFW_KEY_ENTER || keyCode == GLFW.GLFW_KEY_KP_ENTER
+                        || keyCode == GLFW.GLFW_KEY_SPACE)
+                && super.keyPressed(keyCode, scanCode, modifiers)) {
             return true;
         }
 
@@ -798,5 +816,5 @@ public class LoreCodexScreen extends Screen {
 
     private record RowLayout(int y, CodexEntryView entry) {}
 
-    private enum EntryAction { READ, COPY, FAVORITE, NONE }
+    private enum EntryAction { READ, OPEN, COPY, FAVORITE, NONE }
 }

@@ -2183,6 +2183,25 @@ Implement:
 
 ---
 
+## Phase 9 — Codex visual polish
+
+1. Replace vanilla cycle buttons with red ribbon tabs for category, filter, and sort.
+2. Position ribbons to stick out from the book's top-right edge.
+3. Implement fixed-width ribbon display with auto-truncation for long names; preserve full text in tooltips.
+4. Implement left-click and Shift-click cycling for all ribbons.
+5. Ensure ribbons remain keyboard-accessible via Tab and keyboard activation.
+6. Reflow header layout to display eight books per page instead of seven.
+7. Replace the duplicate-handling toggle with a textured icon button from `textures/gui/codex.png`.
+8. Add magnifier glyph and underline styling to the search input field.
+9. Implement `RibbonButton` client class extending `AbstractButton`.
+10. Add three translation keys (`rpg_lore.codex.ribbon.category`, `rpg_lore.codex.ribbon.filter`, `rpg_lore.codex.ribbon.sort`) to all 60 locale files (translated where the locale already translates the Codex controls, English elsewhere).
+11. Remove the "x / y" collected-progress counter from the top of the parchment; only the bottom page counter remains.
+12. Simplify spare-copy indicator to show only the copy icon on each row, with the spare count displayed in the icon's tooltip.
+13. Replace the "Read" text link on each row with a small open-book icon having an "Open Book" tooltip (new translation key `rpg_lore.codex.open_book`, added to all 60 locale files).
+14. Give row titles approximately 30 px more width; any title that still does not fit is truncated with "..." instead of being clipped mid-glyph.
+
+---
+
 # 31. Acceptance Criteria by Feature
 
 ## Codex
@@ -2197,6 +2216,11 @@ Implement:
 - Codex→book→Codex restores browsing state.
 - All controls are translated.
 - No action relies solely on color.
+- Ribbon tab labels are fully visible (truncated labels show full text in tooltip) and the keys are present in every locale file.
+- Progress counter is removed from the Codex header; only the bottom page counter remains.
+- Spare-copy count is shown only in the icon tooltip, not as text on the row.
+- "Read" text link is replaced by a small open-book icon with appropriate tooltip.
+- Row titles that do not fit are truncated with an ellipsis instead of being clipped mid-glyph.
 
 ---
 
