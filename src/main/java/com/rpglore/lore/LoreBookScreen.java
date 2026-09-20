@@ -75,7 +75,7 @@ public class LoreBookScreen extends BookViewScreen {
     private int localCachedPage = -1;
 
     public LoreBookScreen(ItemStack stack) {
-        this(stack, new TitlePageBookAccess(new WrittenBookAccess(stack)));
+        this(stack, new TitlePageBookAccess(new LoreBookAccess(stack)));
     }
 
     private LoreBookScreen(ItemStack stack, BookViewScreen.BookAccess access) {
@@ -220,15 +220,35 @@ public class LoreBookScreen extends BookViewScreen {
         graphics.drawString(this.font, ornament,
                 textCenterX - ornamentWidth / 2, ornamentY, 0x555555, false);
 
-        // --- Author (normal size, bold, centered) ---
+        // --- Author (normal size, bold, centered, wrapped to the page width) ---
         if (!bookAuthor.isEmpty()) {
-            Component authorComp = Component.translatable("book.byAuthor", bookAuthor)
-                    .withStyle(Style.EMPTY.withBold(true).withColor(TextColor.fromRgb(authorColorRgb)));
+            Style authorStyle = Style.EMPTY.withBold(true).withColor(TextColor.fromRgb(authorColorRgb));
+            Component authorComp = Component.translatable("book.byAuthor", bookAuthor).withStyle(authorStyle);
 
-            int authorWidth = this.font.width(authorComp);
             int authorY = ornamentY + 14;
-            graphics.drawString(this.font, authorComp,
-                    textCenterX - authorWidth / 2, authorY, authorColorRgb, false);
+            // Never draw below the page's text area (textY + TEXT_HEIGHT)
+            int maxAuthorLines = Math.max((textY + TEXT_HEIGHT - authorY) / this.font.lineHeight, 1);
+
+            List<FormattedText> split = this.font.getSplitter().splitLines(authorComp, TEXT_WIDTH, authorStyle);
+            List<String> lines = new ArrayList<>(maxAuthorLines);
+            for (int i = 0; i < Math.min(split.size(), maxAuthorLines); i++) {
+                lines.add(split.get(i).getString());
+            }
+            if (lines.isEmpty()) lines.add(authorComp.getString());
+
+            // Too long for the remaining space: ellipsize the last drawn line
+            if (split.size() > maxAuthorLines) {
+                int last = lines.size() - 1;
+                int room = Math.max(TEXT_WIDTH - this.font.width(ELLIPSIS), 0);
+                lines.set(last, this.font.plainSubstrByWidth(lines.get(last), room) + ELLIPSIS);
+            }
+
+            for (int i = 0; i < lines.size(); i++) {
+                Component lineComp = Component.literal(lines.get(i)).withStyle(authorStyle);
+                int lineWidth = this.font.width(lineComp);
+                graphics.drawString(this.font, lineComp,
+                        textCenterX - lineWidth / 2, authorY + i * this.font.lineHeight, authorColorRgb, false);
+            }
         }
     }
 
@@ -361,6 +381,47 @@ public class LoreBookScreen extends BookViewScreen {
                 return FormattedText.EMPTY;
             }
             return delegate.getPageRaw(page - 1);
+        }
+    }
+
+    // ------------------------------------------------------------------
+    // BookAccess that reads pages straight from the stack NBT
+    // ------------------------------------------------------------------
+
+    /**
+     * Reads the book's pages directly from item NBT. Vanilla's
+     * {@link BookViewScreen.WrittenBookAccess} is deliberately not used: it runs
+     * {@code WrittenBookItem.makeSureTagIsValid}, which rejects any title longer
+     * than 32 characters and replaces the whole book with a single
+     * "book.invalid.tag" page. Lore titles are datapack-driven and regularly
+     * exceed that limit, so only the page list is loaded here.
+     */
+    private static class LoreBookAccess implements BookViewScreen.BookAccess {
+        private final List<String> pages;
+
+        LoreBookAccess(ItemStack stack) {
+            List<String> loaded = new ArrayList<>();
+            CompoundTag tag = stack.getTag();
+            if (tag != null) {
+                BookViewScreen.loadPages(tag, loaded::add);
+            }
+            this.pages = loaded;
+        }
+
+        @Override
+        public int getPageCount() {
+            return pages.size();
+        }
+
+        @Override
+        public FormattedText getPageRaw(int page) {
+            // Same fallback chain as vanilla: JSON component first, plain text otherwise
+            String raw = pages.get(page);
+            try {
+                FormattedText parsed = Component.Serializer.fromJson(raw);
+                if (parsed != null) return parsed;
+            } catch (Exception ignored) {}
+            return FormattedText.of(raw);
         }
     }
 }

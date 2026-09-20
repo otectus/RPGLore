@@ -1,6 +1,6 @@
 # Changelog
 
-## [Unreleased] - 2.2.0
+## [2.2.1] - 2026-09-20
 
 ### New Features
 - **Lore Codex browser** -- search across titles, authors, categories, and tags with live filtering; organize by category; filter by All, Collected, Unread, Favorites, or Missing; sort by Default, Title, Category, or Recently found; browse with arrow keys and Enter; press Esc to close or exit search; all view state (search text, category, filter, sort, page, selection) is restored when you return from reading a book
@@ -22,6 +22,8 @@
 - **Automated regression tests** -- JUnit tests cover data parsing and save format migration; Forge GameTests cover Codex gameplay including entity-drop conditions, Codex pruning and reset, player granting, and death/respawn scenarios (run `./gradlew runGameTestServer` or `./gradlew runData` with Curios excluded from both headless runs)
 
 ### Bug Fixes
+- **Long lore titles remain readable** -- books with titles longer than vanilla's 32-character limit now load their pages without showing an invalid-book error; JSON text components and plain-text fallback remain supported
+- **Long author names fit the title page** -- author text wraps within the page width and truncates with an ellipsis when it exceeds the remaining vertical space
 - **Starter Codex no longer lost on grant when inventory is full** -- previously, the inventory-full path used the standard item-drop route, triggering the soulbound toss guard which cancelled the drop and pushed the item back at the full inventory, destroying the Codex while the grant flag was already set; the Codex is now placed directly on the ground at the player's feet via ItemEntity creation, so it can be picked up without re-triggering the guard
 
 ### Improvements
